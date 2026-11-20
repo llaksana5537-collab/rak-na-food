@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rak-Na Merchant Portal | ระบบจัดการร้านค้า</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- 120 Restaurants & 1,200 Menus Database -->
+  <script src="restaurants-data.js"></script>
+  <style>
+    :root {
+      --primary: #00B14F;
+      --primary-dark: #00873D;
+      --primary-light: #E6F8EE;
+      --accent: #FF5A36;
+      --bg: #F4F6F9;
+      --sidebar-bg: #111827;
+      --sidebar-text: #9CA3AF;
+      --sidebar-active: #00B14F;
+      --surface: #FFFFFF;
+      --surface-subtle: #F8FAFC;
+      --border: #E5E7EB;
+      --text-main: #111827;
+      --text-sub: #4B5563;
+      --text-mute: #9CA3AF;
+      --danger: #EF4444;
+      --warning: #F59E0B;
+      --info: #3B82F6;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0B0F14;
+      --sidebar-bg: #090D12;
+      --surface: #141B22;
+      --surface-subtle: #1C2430;
+      --border: #263140;
+      --text-main: #F3F4F6;
+      --text-sub: #9CA3AF;
+      --text-mute: #64748B;
+      --primary-light: rgba(0, 177, 79, 0.15);
+      --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Sidebar Navigation */
+    aside {
+      width: 260px;
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width 0.3s;
+      z-index: 50;
+    }
+
+    .brand-box {
+      padding: 22px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .brand-name {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.2;
+    }
+    .brand-name small {
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 600;
+      display: block;
+    }
+
+    /* Store Switcher in Sidebar */
+    .store-select-box {
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .store-select-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 6px;
+      display: block;
+    }
+    .store-dropdown {
+      width: 100%;
+      background: #1F2937;
+      border: 1px solid #374151;
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+    .store-dropdown:focus {
+      border-color: var(--primary);
+    }
+
+    /* Sidebar Menu */
+    .nav-list {
+      list-style: none;
+      padding: 16px 12px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      color: var(--sidebar-text);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+    }
+    .nav-item.active {
+      background: var(--primary);
+      color: #fff;
+    }
+    .nav-icon {
+      font-size: 18px;
+    }
+    .nav-badge {
+      margin-left: auto;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 99px;
+    }
+
+    .sidebar-footer {
+      padding: 16px 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Main Content Area */
+    .app-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      min-width: 0;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: var(--surface);
+      height: 70px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    .page-title-box h1 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+    .page-title-box p {
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Store Status Toggle Switch */
+    .status-toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+    .status-indicator.closed {
+      background: var(--danger);
+    }
+
+    /* Portal Switcher Buttons */
+    .portal-link-btn {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .portal-link-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    /* Main Container Content */
+    .content-area {
+      padding: 28px;
+      flex: 1;
+    }
+
+    /* Metric Cards Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+    .metric-card {
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .metric-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-sub);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .metric-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--surface-subtle);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+    }
+    .metric-value {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .metric-sub {
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Content Cards */
+    .panel-card {
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      padding: 22px;
+      margin-bottom: 24px;
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-header h2 {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-action {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .btn-action:hover {
+      background: var(--primary-dark);
+    }
+
+    /* Live Orders Kanban / Tabs */
+    .order-status-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .tab-pill {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+      padding: 8px 16px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-pill.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Order Card in Merchant Portal */
+    .order-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .merchant-order-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+    .merchant-order-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+    .order-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .order-id-badge {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .order-status-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+    }
+    .status-new { background: #FEF3C7; color: #92400E; }
+    .status-cooking { background: #DBEAFE; color: #1E40AF; }
+    .status-delivering { background: #E0E7FF; color: #4338CA; }
+    .status-completed { background: #D1FAE5; color: #065F46; }
+
+    .order-items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .order-items-table td {
+      padding: 6px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .order-footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+    }
+    .order-action-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-main);
+      transition: all 0.2s;
+    }
+    .btn-sm.accept {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .btn-sm.ready {
+      background: var(--info);
+      color: #fff;
+      border-color: var(--info);
+    }
+
+    /* Menu Management Table */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .menu-item-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-sm);
+    }
+    .menu-item-img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      background: #e2e8f0;
+    }
+    .menu-item-body {
+      padding: 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .menu-item-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+    .menu-item-desc {
+      font-size: 12px;
+      color: var(--text-sub);
+      line-height: 1.4;
+      margin-bottom: 10px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .menu-item-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .menu-item-price {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--accent);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Toggle Switch */
+    .switch-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-sub);
+      cursor: pointer;
+    }
+    .switch-ui {
+      width: 36px;
+      height: 20px;
+      background: #CBD5E1;
+      border-radius: 99px;
+      position: relative;
+      transition: background 0.2s;
+    }
+    .switch-ui.on {
+      background: var(--primary);
+    }
+    .switch-knob {
+      width: 14px;
+      height: 14px;
+      background: #fff;
+      border-radius: 50%;
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s;
+    }
+    .switch-ui.on .switch-knob {
+      transform: translateX(16px);
+    }
+
+    /* Modal Form */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-box {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 520px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-head {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-head h3 {
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .modal-form-body {
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      max-height: 75vh;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .form-control {
+      width: 100%;
+      height: 42px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      padding: 0 14px;
+      font-size: 13px;
+      background: var(--surface-subtle);
+      color: var(--text-main);
+      outline: none;
+    }
+    .form-control:focus {
+      border-color: var(--primary);
+    }
+    textarea.form-control {
+      height: 80px;
+      padding: 10px 14px;
+      resize: vertical;
+    }
+    .modal-foot {
+      padding: 14px 22px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      background: var(--surface-subtle);
+    }
+
+    /* Toast */
+    .toast-box {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #111827;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 2000;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside>
+  <div class="brand-box">
+    <div class="brand-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+    </div>
+    <div class="brand-name">
+      Rak-Na Merchant
+      <small>ระบบจัดการร้านอาหาร</small>
+    </div>
+  </div>
+
+  <div class="store-select-box">
+    <span class="store-select-label">เลือกร้านค้าที่จัดการ</span>
+    <select id="store-selector" class="store-dropdown" onchange="changeActiveStore(this.value)">
+      <!-- Populated dynamically -->
+    </select>
+  </div>
+
+  <ul class="nav-list">
+    <li class="nav-item active" onclick="switchTab('orders')" id="nav-orders">
+      <span class="nav-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </span>
+      <span>คำสั่งซื้อสด</span>
+      <span class="nav-badge" id="badge-live-orders">0</span>
+    </li>
+    <li class="nav-item" onclick="switchTab('menu')" id="nav-menu">
+      <span class="nav-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      </span>
+      <span>จัดการเมนู & สต๊อก</span>
+    </li>
+    <li class="nav-item" onclick="switchTab('promos')" id="nav-promos">
+      <span class="nav-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      </span>
+      <span>โปรโมชั่นร้าน</span>
+    </li>
+    <li class="nav-item" onclick="switchTab('analytics')" id="nav-analytics">
+      <span class="nav-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </span>
+      <span>รายงานยอดขาย</span>
+    </li>
+    <li class="nav-item" onclick="switchTab('settings')" id="nav-settings">
+      <span class="nav-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </span>
+      <span>ข้อมูลร้านค้า</span>
+    </li>
+  </ul>
+
+  <div class="sidebar-footer">
+    Rak-Na Food Platform © 2026<br>
+    Merchant Console v2.0
+  </div>
+</aside>
+
+<!-- Main Workspace -->
+<div class="app-main">
+  <!-- Header Bar -->
+  <header>
+    <div class="page-title-box">
+      <h1 id="page-heading">คำสั่งซื้อสด (Live Orders)</h1>
+      <p id="store-subheading">ครัวทองเอก อาหารไทยต้นตำรับ • เปิดบริการอยู่</p>
+    </div>
+
+    <div class="header-actions">
+      <!-- Store Open/Close Status Toggle -->
+      <div class="status-toggle-wrap">
+        <div class="status-indicator" id="header-status-indicator"></div>
+        <span id="header-status-text">เปิดรับออเดอร์</span>
+      </div>
+
+      <!-- Quick Switch to Customer App & Admin -->
+      <a href="index.html" class="portal-link-btn" title="เปิดหน้าเว็บลูกค้า">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+        <span>หน้าแอปลูกค้า</span>
+      </a>
+      <a href="admin.html" class="portal-link-btn" title="เปิดหน้าแอดมินกลาง">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span>แอดมินกลาง</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- View Content Slot -->
+  <div class="content-area" id="content-slot">
+    <!-- Rendered dynamically -->
+  </div>
+</div>
+
+<!-- Modal Container -->
+<div id="modal-slot"></div>
+
+<!-- Toast Slot -->
+<div id="toast-slot"></div>
+
+<script>
+// --- 120 RESTAURANTS & 1,200 MENUS (10 PER CATEGORY) ---
+const DEFAULT_RESTAURANTS = (typeof window !== 'undefined' && window.DEFAULT_RESTAURANTS) ? window.DEFAULT_RESTAURANTS : [
+  {
+    id: 1,
+    name: 'ครัวทองเอก อาหารไทยต้นตำรับ',
+    category: 'อาหารไทย',
+    rating: 4.9,
+    reviewsCount: '1.8k+',
+    deliveryTime: '20-25 นาที',
+    distance: '1.2 กม.',
+    deliveryFee: 15,
+    promo: 'ลด 20% สูงสุด 50฿ โค้ด RAKNA50',
+    coverImg: 'https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-1122',
+    hours: '10:00 - 22:00 น.',
+    commissionGP: 25,
+    menu: [
+      { id: 101, name: 'ข้าวกะเพราเนื้อวากิวสับไข่เป็ดกรอบ', desc: 'เนื้อวากิวสับคั่วกระทะเหล็กสูตรโบราณ หอมกลิ่นกระทะ พริกแห้งใบกะเพราป่า เสิร์ฟพร้อมไข่เป็ดดาวกรอบ', price: 89, img: 'https://plus.unsplash.com/premium_photo-1661486609016-93ce09ac77bf?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 102, name: 'ต้มยำกุ้งแม่น้ำน้ำข้นเห็ดฟาง', desc: 'ต้มยำกุ้งแม่น้ำตัวโต มันกุ้งเยิ้ม สมุนไพรไทยแท้ ข่า ตะไคร้ ใบมะกรูด รสจัดจ้าน', price: 189, img: 'https://images.unsplash.com/photo-1548943487-a2e4e43b4853?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 103, name: 'แกงเขียวหวานไก่ยอดมะพร้าวอ่อน', desc: 'พริกแกงเขียวหวานตำเอง กะทิสดคั้นมือ ไก่นุ่มและยอดมะพร้าวกรุบกรอบ', price: 129, img: 'https://plus.unsplash.com/premium_photo-1694699355661-950297cbe618?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 104, name: 'ข้าวเหนียวมะม่วงน้ำดอกไม้ทอง', desc: 'มะม่วงน้ำดอกไม้หวานฉ่ำคัดพิเศษ ข้าวเหนียวมูนกะทิสดหอมมัน โรยถั่วทอง', price: 89, img: 'https://images.unsplash.com/photo-1582801205465-c0d029e85a1c?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 2,
+    name: 'โกฮับ เตี๋ยวเรืออยุธยา & เส้นสด',
+    category: 'ก๋วยเตี๋ยว',
+    rating: 4.8,
+    reviewsCount: '2.1k+',
+    deliveryTime: '15-20 นาที',
+    distance: '0.8 กม.',
+    deliveryFee: 10,
+    promo: 'ฟรีค่าส่ง 3 กม. แรก',
+    coverImg: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-2233',
+    hours: '09:00 - 21:00 น.',
+    commissionGP: 20,
+    menu: [
+      { id: 201, name: 'ก๋วยเตี๋ยวเรือน้ำตกเนื้อคุโรบุตะ', desc: 'น้ำตกสูตรเด็ดหอมเครื่องเทศตุ๋น 8 ชม. เนื้อหมูคุโรบุตะนุ่มละมุน พร้อมกากหมูกรอบ', price: 65, img: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 202, name: 'ผัดไทยกุ้งแม่น้ำสดเตาถ่าน', desc: 'เส้นจันท์เหนียวนุ่ม ผัดซอสมะขามสูตรโบราณ กุ้งแม่น้ำสดตัวใหญ่ กลิ่นหอมกระทะ', price: 119, img: 'https://images.unsplash.com/photo-1559314809-0d155014e29e?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 203, name: 'บะหมี่เกี๊ยวกุ้งหมูแดงอบน้ำผึ้ง', desc: 'บะหมี่ไข่เส้นฝอย เกี๊ยวกุ้งเต็มคำ หมูแดงอบน้ำผึ้งฉ่ำ พร้อมน้ำซุปกระดูกหมูหวานกลมกล่อม', price: 79, img: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 3,
+    name: 'Shinjuku Sushi & Ramen Bar',
+    category: 'ญี่ปุ่น',
+    rating: 4.95,
+    reviewsCount: '3.4k+',
+    deliveryTime: '25-35 นาที',
+    distance: '2.5 กม.',
+    deliveryFee: 20,
+    promo: 'ลด 15% เมนูซูชิเซ็ต',
+    coverImg: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-3344',
+    hours: '11:00 - 22:00 น.',
+    commissionGP: 25,
+    menu: [
+      { id: 301, name: 'พรีเมียมแซลมอนซูชิเซ็ต 8 คำ', desc: 'แซลมอนนอร์เวย์สดนำเข้า ซาชิมิ นิกิริ และแซลมอนเบิร์นไฟราดซอสไซเคียว', price: 259, img: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 302, name: 'ฮากาตะทงคตสึราเมนหมูชาชูรมควัน', desc: 'น้ำซุปกระดูกหมูเคี่ยวนาน 14 ชั่วโมง เส้นราเมนนำเข้า หมูชาชูรมควันนุ่มละลายในปาก', price: 179, img: 'https://images.unsplash.com/photo-1557872943-16a5ac26437e?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 303, name: 'ข้าวหน้าเนื้อวากิวดอนไข่ออนเซ็น', desc: 'เนื้อวากิวออสเตรเลียสไลซ์ ผัดซอสหวานสไตล์ญี่ปุ่น ท็อปไข่ออนเซ็นเยิ้มๆ', price: 219, img: 'https://images.unsplash.com/photo-1761064864532-1794a1f8f784?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 4,
+    name: 'Seoul Chikin & Pocha',
+    category: 'เกาหลี',
+    rating: 4.85,
+    reviewsCount: '1.5k+',
+    deliveryTime: '25-30 นาที',
+    distance: '1.9 กม.',
+    deliveryFee: 15,
+    promo: 'เซ็ตไก่ทอดแถมต็อกบกกี',
+    coverImg: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-4455',
+    hours: '11:00 - 23:00 น.',
+    commissionGP: 22,
+    menu: [
+      { id: 401, name: 'ไก่ทอดเกาหลีซอสซอยการ์ลิค 6 ชิ้น', desc: 'ไก่ทอดกรอบนอกนุ่มฉ่ำใน คลุกเคล้าซอสกระเทียมหวานเค็มสูตรฮงแด โรยงาขาวคั่ว', price: 149, img: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 402, name: 'ต็อกบกกีชีสลาวาเยิ้ม', desc: 'แป้งต็อกเหนียวนุ่ม เคี่ยวในซอสโคชูจังรสเข้ม ท็อปมอสซาเรลล่าชีสยืดเยิ้มจุใจ', price: 139, img: 'https://images.unsplash.com/photo-1747037693812-5ed37684d760?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 403, name: 'ข้าวผัดกิมจิหมูสามชั้นกระทะร้อน', desc: 'ข้าวผัดกิมจิหมักโฮมเมด หมูสามชั้นชิ้นพอดีคำ เสิร์ฟพร้อมไข่ดาวและสาหร่ายเกาหลี', price: 119, img: 'https://images.unsplash.com/photo-1785288171672-6b1800a1e1f6?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 5,
+    name: 'The Artisan Craft Burgers & Pizza',
+    category: 'เบอร์เกอร์',
+    rating: 4.9,
+    reviewsCount: '2.8k+',
+    deliveryTime: '25-35 นาที',
+    distance: '3.0 กม.',
+    deliveryFee: 20,
+    promo: 'ลด 10% เมื่อสั่งครบ 300฿',
+    coverImg: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-5566',
+    hours: '11:00 - 22:30 น.',
+    commissionGP: 25,
+    menu: [
+      { id: 501, name: 'ดับเบิ้ลเบคอนชีสเบอร์เกอร์แองกัส', desc: 'เนื้อแองกัสบดสดฉ่ำ 2 ชั้น ดับเบิ้ลเชดด้าชีส เบคอนกรอบ และซอสทรัฟเฟิลมาโยในขนมปังบริออชเนยสด', price: 239, img: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 502, name: 'พิซซ่าเตาฟืนทรัฟเฟิลพาร์มาแฮม', desc: 'แป้งพิซซ่าหมัก 48 ชม. อบเตาฟืน ซอสครีมเห็ดทรัฟเฟิลดำ มอสซาเรลล่า และพาร์มาแฮม', price: 299, img: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 503, name: 'เฟรนช์ฟรายส์ทรัฟเฟิลดิปดิปปิ้ง', desc: 'มันฝรั่งทอดแท่งทองกรอบนอกนุ่มใน คลุกเกลือทะเล เสิร์ฟคู่ซอสมาโยทรัฟเฟิลแท้', price: 89, img: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 6,
+    name: 'แซ่บนัว ส้มตำถาดเมืองอุบล',
+    category: 'ส้มตำ & ยำ',
+    rating: 4.88,
+    reviewsCount: '3.1k+',
+    deliveryTime: '20-30 นาที',
+    distance: '1.5 กม.',
+    deliveryFee: 15,
+    promo: 'สั่งส้มตำถาดฟรีแคบหมูกรอบ',
+    coverImg: 'https://images.unsplash.com/photo-1706176224199-cd97c73d7640?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-6677',
+    hours: '10:30 - 21:30 น.',
+    commissionGP: 20,
+    menu: [
+      { id: 601, name: 'ส้มตำถาดซีฟู้ดรวมมิตรปลาร้านัว', desc: 'ตำป่าปลาร้าต้มสุกหอมนัว เครื่องแน่น กุ้งสด หมึกสด แคบหมู ไข่ต้ม ขนมจีน ผักเคียงจัดเต็มถาด', price: 169, img: 'https://images.unsplash.com/photo-1706176224199-cd97c73d7640?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 602, name: 'คอหมูย่างเตาถ่านน้ำจิ้มแจ่วมะขาม', desc: 'คอหมูแท้หมักเครื่องเทศข้ามคืน ย่างเตาถ่านหอมกรุ่น เนื้อนุ่มฉ่ำ จิ้มแจ่วมะขามรสเด็ด', price: 119, img: 'https://images.unsplash.com/photo-1592903475970-ed2fc67da45e?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 603, name: 'ต้มแซ่บกระดูกหมูอ่อนใบมะขาม', desc: 'กระดูกอ่อนตุ๋นเปื่อยเคี้ยวกรุบ น้ำซุปสมุนไพรสด ซดคล่องคอ รสแซ่บจี๊ดถึงใจ', price: 129, img: 'https://images.unsplash.com/photo-1548943487-a2e4e43b4853?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 7,
+    name: 'Roast & Brew Specialty Coffee',
+    category: 'กาแฟ & คาเฟ่',
+    rating: 4.92,
+    reviewsCount: '2.3k+',
+    deliveryTime: '15-20 นาที',
+    distance: '0.9 กม.',
+    deliveryFee: 10,
+    promo: 'จับคู่กาแฟ+ครัวซองต์ลด 25฿',
+    coverImg: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-7788',
+    hours: '07:30 - 18:00 น.',
+    commissionGP: 20,
+    menu: [
+      { id: 701, name: 'เดอร์ตี้คอฟฟี่ (Signature Dirty Coffee)', desc: 'นมสดเย็นจัดสูตรพิเศษ ราดด้วยช็อตเอสเปรสโซ่คั่วกลางเข้ม รสสัมผัสนุ่มละมุนไล่ระดับ', price: 95, img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 702, name: 'โคลด์บรูว์ส้มยูซุสปาร์คกลิ้ง', desc: 'กาแฟสกัดเย็น 18 ชม. ผสานน้ำส้มยูซุแท้จากญี่ปุ่นและโทนิคซ่า สดชื่นคลายร้อน', price: 105, img: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 703, name: 'ครัวซองต์เนยฝรั่งเศสสด', desc: 'แป้งพัฟฟ์หลายชั้นนำเข้าจากฝรั่งเศส อบสดใหม่ทุกเช้า หอมเนยแท้ กรอบนอกนุ่มชุ่มฉ่ำใน', price: 75, img: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 8,
+    name: 'La Dolce Vita Desserts & Bingsu',
+    category: 'ของหวาน',
+    rating: 4.86,
+    reviewsCount: '1.7k+',
+    deliveryTime: '20-30 นาที',
+    distance: '1.8 กม.',
+    deliveryFee: 15,
+    promo: 'ลด 15% ทุกเมนูบิงซู',
+    coverImg: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-8899',
+    hours: '11:00 - 22:00 น.',
+    commissionGP: 22,
+    menu: [
+      { id: 801, name: 'สโนว์บิงซูสตรอว์เบอร์รีเกาหลี', desc: 'เกล็ดหิมะนมสดนุ่มฟู ท็อปสตรอว์เบอร์รีเกาหลีสดลูกโต ราดซอสโฮมเมดและนมข้นหวาน', price: 189, img: 'https://images.unsplash.com/photo-1771209802058-3b40ce534905?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 802, name: 'ช็อกโกแลตฟองดองท์ลาวาเยิ้ม', desc: 'เค้กช็อกโกแลตเบลเยียมเข้มข้น 70% อุ่นร้อน บิแล้วไส้ช็อกโกแลตไหลเยิ้ม เสิร์ฟพร้อมไอศกรีมวานิลลา', price: 145, img: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 803, name: 'เครปฝรั่งเศสนูเทลล่ากล้วยหอมทอง', desc: 'แป้งเครปบางนุ่ม ทานูเทลล่าฉ่ำๆ กล้วยหอมทองสด วิปครีม และอัลมอนด์อบกรอบ', price: 95, img: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 9,
+    name: 'Green Garden Clean & Plant Bowls',
+    category: 'อาหารคลีน',
+    rating: 4.91,
+    reviewsCount: '1.2k+',
+    deliveryTime: '20-25 นาที',
+    distance: '1.1 กม.',
+    deliveryFee: 15,
+    promo: 'สายสุขภาพลด 30฿ โค้ด CLEAN30',
+    coverImg: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-9900',
+    hours: '08:30 - 20:30 น.',
+    commissionGP: 20,
+    menu: [
+      { id: 901, name: 'โบวล์แซลมอนย่างอะโวคาโดคีนัว', desc: 'แซลมอนนอร์เวย์ย่าง อะโวคาโดฮาสส์ คีนัวออร์แกนิก ไข่ต้มยางมะตูม ผักสลัดไฮโดรโปนิกส์ และน้ำสลัดงาญี่ปุ่น', price: 195, img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 902, name: 'ซีซาร์สลัดอกไก่ย่างไข่ต้มยางมะตูม', desc: 'อกไก่หมักสมุนไพรย่างนุ่ม ผักคอสกรอบ ขนมปังกรอบ ชีสพาร์เมซานขูดสด และน้ำสลัดซีซาร์ไขมันต่ำ', price: 145, img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 903, name: 'สมูทตี้โบวล์อาซาอิเบอร์รี่รวม', desc: 'อาซาอิเบอร์รี่แท้ปั่นเนื้อข้น ท็อปด้วยบลูเบอร์รี สตรอว์เบอร์รี กราโนล่า และเมล็ดเจีย', price: 165, img: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 10,
+    name: 'Tiger Boba & Taiwanese Tea',
+    category: 'ชานมไข่มุก',
+    rating: 4.87,
+    reviewsCount: '4.2k+',
+    deliveryTime: '15-20 นาที',
+    distance: '0.7 กม.',
+    deliveryFee: 10,
+    promo: '1 แถม 1 ชานมบราวน์ชูการ์',
+    coverImg: 'https://images.unsplash.com/photo-1774979300682-f92e5988d55b?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-0011',
+    hours: '10:00 - 21:00 น.',
+    commissionGP: 20,
+    menu: [
+      { id: 1001, name: 'ชานมไข่มุกบราวน์ชูการ์ครีมชีส', desc: 'ใบชาไต้หวันแท้ต้มสด ไข่มุกต้มน้ำตาลทรายแดงเคี่ยวมือเหนียวนุ่ม ท็อปครีมชีสพ่นไฟหอมมัน', price: 75, img: 'https://images.unsplash.com/photo-1774979300682-f92e5988d55b?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1002, name: 'ชาไทยโบราณเฉาก๊วยนมสดแท้', desc: 'ชาไทยพรีเมียมเข้มข้น หอมกลิ่นชาแท้ ใส่นมสดฮอกไกโดและเฉาก๊วยเนื้อหนึบ', price: 65, img: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1003, name: 'ชาพีชเลมอนสดเย็นชื่นใจ', desc: 'ชาอู่หลงหอมหมื่นลี้ ผสานเนื้อพีชหวานฉ่ำและเลมอนคั้นสด เปรี้ยวอมหวานสดชื่น', price: 65, img: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 11,
+    name: 'ฮั่งเส็ง ติ่มซำ & เป็ดย่างฮ่องกง',
+    category: 'ติ่มซำ & จีน',
+    rating: 4.93,
+    reviewsCount: '2.5k+',
+    deliveryTime: '25-35 นาที',
+    distance: '2.8 กม.',
+    deliveryFee: 20,
+    promo: 'เป็ดย่างจานใหญ่ลด 10%',
+    coverImg: 'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-1122',
+    hours: '08:00 - 21:00 น.',
+    commissionGP: 22,
+    menu: [
+      { id: 1101, name: 'เป็ดย่างฮ่องกงแท้หนังกรอบเนื้อนุ่ม', desc: 'เป็ดเชอร์รี่คัดพิเศษ ย่างเตาถ่านหนังกรอบหอมกลิ่นน้ำผึ้งและสมุนไพรจีน ราดซอสสูตรลับกวางตุ้ง', price: 219, img: 'https://images.unsplash.com/photo-1610540871860-2f2ecf619696?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1102, name: 'ขนมจีบกุ้งจักรพรรดิคำโต 4 ลูก', desc: 'เนื้อกุ้งลายเสือเน้นๆ ไส้แน่นเด้งกรุบ ห่อแป้งเกี๊ยวบาง โรยกระเทียมเจียว', price: 85, img: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1103, name: 'ซาลาเปาลาวาไข่เค็มเยิ้ม 3 ลูก', desc: 'แป้งนุ่มฟู บิแล้วไส้คัสตาร์ดไข่เค็มมันหวานเค็มไหลทะลัก อุ่นร้อนพร้อมทาน', price: 75, img: 'https://images.unsplash.com/photo-1563104307-944928bb174a?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 12,
+    name: 'Prime Cut Steakhouse & Grill',
+    category: 'สเต็ก & กริลล์',
+    rating: 4.96,
+    reviewsCount: '1.9k+',
+    deliveryTime: '30-40 นาที',
+    distance: '3.2 กม.',
+    deliveryFee: 25,
+    promo: 'สเต็กเซ็ตพรีเมียมลด 50฿ โค้ด RAKNA50',
+    coverImg: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-1133',
+    hours: '11:30 - 22:30 น.',
+    commissionGP: 25,
+    menu: [
+      { id: 1201, name: 'สเต็กเนื้อริบอายออสเตรเลียย่างเตาถ่าน', desc: 'เนื้อริบอายเกรนเฟด 150 วัน ลายหินอ่อนสวย ย่างมีเดียมแรร์ เสิร์ฟคู่ซอสไวน์แดง', price: 349, img: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1202, name: 'สเต็กพอร์คชอปคุโรบุตะซอสพริกไทยดำ', desc: 'หมูคุโรบุตะชิ้นหนานุ่มฉ่ำ ย่างเนยสดและโรสแมรี่ ราดซอสพริกไทยดำเข้มข้น', price: 249, img: 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1203, name: 'ซี่โครงหมูบาร์บีคิวรมควันนุ่มร่อน', desc: 'ซี่โครงหมูทาซอสบาร์บีคิวสูตรเท็กซัส รมควันไม้นาน 6 ชม. เนื้อนุ่มล่อนจากกระดูก', price: 299, img: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  }
+];
+
+// Seed sample orders if none exist
+const DEFAULT_ORDERS = [
+  {
+    id: 108921,
+    restaurantId: 1,
+    customerName: 'คุณวรภัทร (089-123-4567)',
+    address: 'คอนโด แอชตัน สุขุมวิท 24 ชั้น 12',
+    status: 'new', // 'new', 'cooking', 'delivering', 'completed'
+    time: '10:14 น.',
+    total: 267,
+    items: [
+      { name: 'ข้าวกะเพราเนื้อวากิวสับไข่เป็ดกรอบ', qty: 2, price: 89, note: 'เผ็ดจัดจ้าน ไข่เป็ดกรอบ' },
+      { name: 'ข้าวเหนียวมะม่วงน้ำดอกไม้ทอง', qty: 1, price: 89, note: 'แยกน้ำกะทิ' }
+    ]
+  },
+  {
+    id: 108918,
+    restaurantId: 1,
+    customerName: 'คุณศศิธร (081-998-3321)',
+    address: 'บ้านเลขที่ 88 ซอยเอกมัย 12',
+    status: 'cooking',
+    time: '10:05 น.',
+    total: 318,
+    items: [
+      { name: 'ต้มยำกุ้งแม่น้ำน้ำข้นเห็ดฟาง', qty: 1, price: 189, note: 'เผ็ดกลาง' },
+      { name: 'แกงเขียวหวานไก่ยอดมะพร้าวอ่อน', qty: 1, price: 129, note: '' }
+    ]
+  },
+  {
+    id: 108890,
+    restaurantId: 1,
+    customerName: 'คุณธนพล (086-444-5555)',
+    address: 'อาคารเอ็มโพเรียม ทาวเวอร์ ชั้น 18',
+    status: 'completed',
+    time: '09:40 น.',
+    total: 178,
+    items: [
+      { name: 'ข้าวเหนียวมะม่วงน้ำดอกไม้ทอง', qty: 2, price: 89, note: '' }
+    ]
+  },
+  {
+    id: 108855,
+    restaurantId: 2,
+    customerName: 'คุณกิตติศักดิ์ (085-332-1100)',
+    address: 'สาทรการ์เดนส์ ทาวเวอร์ A',
+    status: 'cooking',
+    time: '10:20 น.',
+    total: 198,
+    items: [
+      { name: 'ก๋วยเตี๋ยวเรือน้ำตกเนื้อคุโรบุตะ', qty: 1, price: 89, note: 'เผ็ดมาก' },
+      { name: 'ผัดไทยกุ้งแม่น้ำสดเตาถ่าน', qty: 1, price: 109, note: '' }
+    ]
+  },
+  {
+    id: 108842,
+    restaurantId: 3,
+    customerName: 'คุณอลิสา (081-776-9090)',
+    address: 'คอนโด โนเบิลรีวอลฟ์ รัชดา',
+    status: 'new',
+    time: '10:25 น.',
+    total: 438,
+    items: [
+      { name: 'พรีเมียมแซลมอนซูชิเซ็ต 8 คำ', qty: 1, price: 259, note: 'ขอวาซาบิสดเพิ่ม' },
+      { name: 'ฮากาตะทงคตสึราเมนหมูชาชูรมควัน', qty: 1, price: 179, note: 'เส้นนุ่มปกติ' }
+    ]
+  }
+];
+
+// Ensure shared database version 9 with 120 restaurants and 1,200 menus
+const DB_VERSION = 9;
+if (localStorage.getItem('rakna_db_v') !== String(DB_VERSION)) {
+  localStorage.setItem('rakna_restaurants', JSON.stringify(DEFAULT_RESTAURANTS));
+  localStorage.setItem('rakna_db_v', String(DB_VERSION));
+}
+
+function getStoreData() {
+  const data = localStorage.getItem('rakna_restaurants');
+  return data ? JSON.parse(data) : DEFAULT_RESTAURANTS;
+}
+
+function saveStoreData(restaurants) {
+  localStorage.setItem('rakna_restaurants', JSON.stringify(restaurants));
+}
+
+function getOrdersData() {
+  const data = localStorage.getItem('rakna_orders');
+  return data ? JSON.parse(data) : DEFAULT_ORDERS;
+}
+
+function saveOrdersData(orders) {
+  localStorage.setItem('rakna_orders', JSON.stringify(orders));
+}
+
+// Initial storage bootstrap
+if (!localStorage.getItem('rakna_restaurants')) {
+  saveStoreData(DEFAULT_RESTAURANTS);
+}
+if (!localStorage.getItem('rakna_orders')) {
+  saveOrdersData(DEFAULT_ORDERS);
+}
+
+// --- STATE MANAGEMENT ---
+let activeStoreId = 1;
+let currentTab = 'orders'; // 'orders', 'menu', 'promos', 'analytics', 'settings'
+let orderStatusFilter = 'all';
+
+const $ = id => document.getElementById(id);
+const formatMoney = n => '฿' + Math.max(0, n).toLocaleString();
+
+// Toast helper
+function showToast(msg) {
+  const slot = $('toast-slot');
+  slot.innerHTML = `<div class="toast-box"><span>✓</span> ${msg}</div>`;
+  setTimeout(() => { slot.innerHTML = ''; }, 2200);
+}
+
+// Chime sound helper
+function playAlertChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const t = ctx.currentTime;
+    osc.frequency.setValueAtTime(587.33, t); // D5
+    osc.frequency.setValueAtTime(880, t + 0.12); // A5
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    osc.start(t);
+    osc.stop(t + 0.35);
+  } catch(e) {}
+}
+
+// Populate store selector dropdown grouped by category
+function initStoreSelector() {
+  const stores = getStoreData();
+  const sel = $('store-selector');
+  const categories = [...new Set(stores.map(s => s.category))];
+  sel.innerHTML = categories.map(cat => {
+    const catStores = stores.filter(s => s.category === cat);
+    return `<optgroup label="หมวด: ${cat} (${catStores.length} ร้าน)">
+      ${catStores.map(s => `<option value="${s.id}" ${s.id === activeStoreId ? 'selected' : ''}>${s.name}</option>`).join('')}
+    </optgroup>`;
+  }).join('');
+}
+
+function changeActiveStore(storeId) {
+  activeStoreId = parseInt(storeId);
+  const store = getStoreData().find(s => s.id === activeStoreId);
+  if (store) {
+    $('store-subheading').textContent = `${store.name} • ${store.isOpen ? 'เปิดบริการอยู่' : 'ปิดร้านชั่วคราว'}`;
+    $('header-status-indicator').className = `status-indicator ${store.isOpen ? '' : 'closed'}`;
+    $('header-status-text').textContent = store.isOpen ? 'เปิดรับออเดอร์' : 'ปิดร้านชั่วคราว';
+  }
+  showToast(`สลับไปจัดการร้าน "${store.name}" เรียบร้อยแล้ว`);
+  renderCurrentTab();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navBtn = $(`nav-${tab}`);
+  if (navBtn) navBtn.classList.add('active');
+
+  const titles = {
+    orders: 'คำสั่งซื้อสด (Live Orders)',
+    menu: 'จัดการเมนูและสต๊อก (Menu & Stock)',
+    promos: 'โปรโมชั่นและส่วนลดร้าน (Promotions)',
+    analytics: 'รายงานยอดขายและสถิติ (Sales Reports)',
+    settings: 'ข้อมูลร้านค้าและตั้งค่า (Store Profile)'
+  };
+  $('page-heading').textContent = titles[tab] || '';
+  renderCurrentTab();
+}
+
+// --- TAB RENDERING ---
+
+function renderCurrentTab() {
+  const slot = $('content-slot');
+  switch (currentTab) {
+    case 'orders': renderOrdersView(slot); break;
+    case 'menu': renderMenuView(slot); break;
+    case 'promos': renderPromosView(slot); break;
+    case 'analytics': renderAnalyticsView(slot); break;
+    case 'settings': renderSettingsView(slot); break;
+  }
+}
+
+// 1. ORDERS VIEW
+function renderOrdersView(slot) {
+  const allOrders = getOrdersData();
+  const storeOrders = allOrders.filter(o => o.restaurantId === activeStoreId);
+  const pendingCount = storeOrders.filter(o => o.status === 'new').length;
+  $('badge-live-orders').textContent = pendingCount;
+
+  const filtered = storeOrders.filter(o => {
+    if (orderStatusFilter === 'all') return true;
+    return o.status === orderStatusFilter;
+  });
+
+  slot.innerHTML = `
+    <!-- Top Summary Metrics -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>ออเดอร์รอรับ</span>
+          <div class="metric-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+        </div>
+        <div class="metric-value" style="color: var(--accent);">${storeOrders.filter(o => o.status === 'new').length}</div>
+        <div class="metric-sub">กรุณารับออเดอร์ใน 3 นาที</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>กำลังปรุงอาหาร</span>
+          <div class="metric-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+        </div>
+        <div class="metric-value" style="color: var(--info);">${storeOrders.filter(o => o.status === 'cooking').length}</div>
+        <div class="metric-sub">เตรียมแพ็กเกจส่งมอบ</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>ส่งเสร็จแล้ววันนี้</span>
+          <div class="metric-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
+        <div class="metric-value" style="color: var(--primary);">${storeOrders.filter(o => o.status === 'completed').length}</div>
+        <div class="metric-sub">ยอดสั่งซื้อลื่นไหลดีมาก</div>
+      </div>
+    </div>
+
+    <!-- Panel Card -->
+    <div class="panel-card">
+      <div class="panel-header">
+        <h2 style="display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          รายการคำสั่งซื้อที่เข้ามา
+        </h2>
+        <button class="btn-action" onclick="simulateIncomingOrder()">
+          <span>+</span> จำลองลูกค้าสั่งอาหารใหม่
+        </button>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="order-status-tabs">
+        <button class="tab-pill ${orderStatusFilter === 'all' ? 'active' : ''}" onclick="setOrderStatusFilter('all')">ทั้งหมด (${storeOrders.length})</button>
+        <button class="tab-pill ${orderStatusFilter === 'new' ? 'active' : ''}" onclick="setOrderStatusFilter('new')">รอรับ (${storeOrders.filter(o => o.status === 'new').length})</button>
+        <button class="tab-pill ${orderStatusFilter === 'cooking' ? 'active' : ''}" onclick="setOrderStatusFilter('cooking')">กำลังปรุง (${storeOrders.filter(o => o.status === 'cooking').length})</button>
+        <button class="tab-pill ${orderStatusFilter === 'completed' ? 'active' : ''}" onclick="setOrderStatusFilter('completed')">ส่งสำเร็จ (${storeOrders.filter(o => o.status === 'completed').length})</button>
+      </div>
+
+      <!-- Orders List -->
+      <div class="order-list">
+        ${filtered.map(order => `
+          <div class="merchant-order-card">
+            <div class="order-top-row">
+              <div class="order-id-badge">
+                <span>#RN-${order.id}</span>
+                <span style="font-size: 12px; color: var(--text-mute);">• เวลาสั่ง ${order.time}</span>
+              </div>
+              <span class="order-status-tag ${
+                order.status === 'new' ? 'status-new' :
+                order.status === 'cooking' ? 'status-cooking' :
+                order.status === 'delivering' ? 'status-delivering' : 'status-completed'
+              }">
+                ${
+                  order.status === 'new' ? 'รอร้านกดยืนยัน' :
+                  order.status === 'cooking' ? 'กำลังปรุงอาหาร' :
+                  order.status === 'delivering' ? 'ไรเดอร์กำลังไปส่ง' : 'จัดส่งสำเร็จเรียบร้อย'
+                }
+              </span>
+            </div>
+
+            <div style="font-size: 13px; color: var(--text-sub);">
+              <b>ลูกค้า:</b> ${order.customerName} | <b>ที่อยู่:</b> ${order.address}
+            </div>
+
+            <table class="order-items-table">
+              ${order.items.map(it => `
+                <tr>
+                  <td><b>${it.qty}x</b> ${it.name} ${it.note ? `<span style="color: var(--accent); font-size: 11px;">(โน้ต: ${it.note})</span>` : ''}</td>
+                  <td style="text-align: right; font-weight: 700;">${formatMoney(it.price * it.qty)}</td>
+                </tr>
+              `).join('')}
+            </table>
+
+            <div class="order-footer-row">
+              <div style="font-size: 15px; font-weight: 800; color: var(--text-main);">
+                ยอดสุทธิ: <span style="color: var(--accent);">${formatMoney(order.total)}</span>
+              </div>
+              <div class="order-action-btns">
+                ${order.status === 'new' ? `
+                  <button class="btn-sm accept" onclick="updateOrderStatus(${order.id}, 'cooking')">รับออเดอร์และเริ่มปรุง</button>
+                  <button class="btn-sm" style="color: var(--danger);" onclick="cancelOrder(${order.id})">ปฏิเสธ</button>
+                ` : order.status === 'cooking' ? `
+                  <button class="btn-sm ready" onclick="updateOrderStatus(${order.id}, 'delivering')">ปรุงเสร็จแล้ว ส่งมอบไรเดอร์</button>
+                ` : order.status === 'delivering' ? `
+                  <button class="btn-sm accept" onclick="updateOrderStatus(${order.id}, 'completed')">ทำเครื่องหมายว่าส่งถึงแล้ว</button>
+                ` : `
+                  <span style="font-size: 12px; color: var(--primary); font-weight: 700;">ออเดอร์เสร็จสมบูรณ์เรียบร้อย</span>
+                `}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+
+        ${filtered.length === 0 ? `
+          <div style="text-align: center; padding: 40px; color: var(--text-mute);">
+            <div style="margin-bottom: 8px;">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <b>ไม่มีคำสั่งซื้อในสถานะนี้</b>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function setOrderStatusFilter(status) {
+  orderStatusFilter = status;
+  renderCurrentTab();
+}
+
+function updateOrderStatus(orderId, newStatus) {
+  const orders = getOrdersData();
+  const target = orders.find(o => o.id === orderId);
+  if (target) {
+    target.status = newStatus;
+    saveOrdersData(orders);
+    showToast(`อัปเดตสถานะออเดอร์ #RN-${orderId} เรียบร้อยแล้ว`);
+    renderCurrentTab();
+  }
+}
+
+function cancelOrder(orderId) {
+  if (confirm(`คุณต้องการปฏิเสธออเดอร์ #RN-${orderId} ใช่หรือไม่?`)) {
+    let orders = getOrdersData();
+    orders = orders.filter(o => o.id !== orderId);
+    saveOrdersData(orders);
+    showToast(`ยกเลิกออเดอร์แล้ว`);
+    renderCurrentTab();
+  }
+}
+
+function simulateIncomingOrder() {
+  const store = getStoreData().find(s => s.id === activeStoreId);
+  const randomDish = store.menu[Math.floor(Math.random() * store.menu.length)];
+  const newOrderId = Math.floor(100000 + Math.random() * 900000);
+  const newOrder = {
+    id: newOrderId,
+    restaurantId: activeStoreId,
+    customerName: 'คุณลูกค้าใหม่ (085-555-9988)',
+    address: 'คอนโดหรูสุขุมวิท ชั้น 8 ห้อง 802',
+    status: 'new',
+    time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+    total: randomDish.price,
+    items: [
+      { name: randomDish.name, qty: 1, price: randomDish.price, note: 'ขอช้อนส้อมด้วยครับ' }
+    ]
+  };
+
+  const orders = getOrdersData();
+  orders.unshift(newOrder);
+  saveOrdersData(orders);
+  playAlertChime();
+  showToast(`มีออเดอร์ใหม่เข้ามา! #RN-${newOrderId}`);
+  renderCurrentTab();
+}
+
+// 2. MENU & STOCK MANAGEMENT VIEW
+function renderMenuView(slot) {
+  const store = getStoreData().find(s => s.id === activeStoreId);
+
+  slot.innerHTML = `
+    <div class="panel-card">
+      <div class="panel-header">
+        <h2 style="display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+          เมนูอาหารและจัดการสต๊อก (${store.menu.length} รายการ)
+        </h2>
+        <button class="btn-action" onclick="openAddDishModal()">
+          <span>+</span> เพิ่มเมนูใหม่
+        </button>
+      </div>
+
+      <div class="menu-grid">
+        ${store.menu.map(dish => `
+          <div class="menu-item-box">
+            <img class="menu-item-img" src="${dish.img}" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'">
+            <div class="menu-item-body">
+              <div>
+                <div class="menu-item-name">${dish.name}</div>
+                <div class="menu-item-desc">${dish.desc || 'เมนูแนะนำยอดนิยม'}</div>
+              </div>
+
+              <div class="menu-item-foot">
+                <span class="menu-item-price">${formatMoney(dish.price)}</span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <!-- Stock Switch -->
+                  <label class="switch-label" onclick="toggleDishStock(${dish.id})">
+                    <span>${dish.inStock !== false ? 'พร้อมขาย' : 'ของหมด'}</span>
+                    <div class="switch-ui ${dish.inStock !== false ? 'on' : ''}">
+                      <div class="switch-knob"></div>
+                    </div>
+                  </label>
+                  <button class="btn-sm" onclick="openEditDishModal(${dish.id})" title="แก้ไข">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                  </button>
+                  <button class="btn-sm" style="color: var(--danger);" onclick="deleteDish(${dish.id})" title="ลบ">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function toggleDishStock(dishId) {
+  const stores = getStoreData();
+  const store = stores.find(s => s.id === activeStoreId);
+  const dish = store.menu.find(d => d.id === dishId);
+  if (dish) {
+    dish.inStock = dish.inStock === false ? true : false;
+    saveStoreData(stores);
+    showToast(`อัปเดตสต๊อก "${dish.name}" เป็น ${dish.inStock ? 'พร้อมขาย' : 'ของหมดชั่วคราว'} แล้ว`);
+    renderCurrentTab();
+  }
+}
+
+function openAddDishModal() {
+  $('modal-slot').innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal(event)">
+      <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <h3>เพิ่มเมนูอาหารใหม่</h3>
+          <button style="border:none;background:none;font-size:18px;cursor:pointer;" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-form-body">
+          <div class="form-group">
+            <label>ชื่อเมนูอาหาร *</label>
+            <input id="new-dish-name" class="form-control" placeholder="เช่น ผัดกะเพราเนื้อโคขุนสับ">
+          </div>
+          <div class="form-group">
+            <label>ราคาขาย (บาท) *</label>
+            <input id="new-dish-price" type="number" class="form-control" placeholder="89">
+          </div>
+          <div class="form-group">
+            <label>คำอธิบายเมนู</label>
+            <textarea id="new-dish-desc" class="form-control" placeholder="รายละเอียดวัตถุดิบ รสชาติ ความอร่อย..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>ลิงก์รูปภาพ (URL)</label>
+            <input id="new-dish-img" class="form-control" placeholder="https://images.unsplash.com/..." value="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80">
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn-sm" onclick="closeModal()">ยกเลิก</button>
+          <button class="btn-action" onclick="saveNewDish()">บันทึกเมนู</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function saveNewDish() {
+  const name = $('new-dish-name').value.trim();
+  const price = parseFloat($('new-dish-price').value);
+  const desc = $('new-dish-desc').value.trim();
+  const img = $('new-dish-img').value.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
+
+  if (!name || isNaN(price)) {
+    alert('กรุณากรอกชื่อเมนูและราคาให้ครบถ้วน');
+    return;
+  }
+
+  const stores = getStoreData();
+  const store = stores.find(s => s.id === activeStoreId);
+  const newDish = {
+    id: Date.now(),
+    name,
+    price,
+    desc,
+    img,
+    inStock: true
+  };
+  store.menu.push(newDish);
+  saveStoreData(stores);
+  closeModal();
+  showToast(`เพิ่มเมนู "${name}" สำเร็จแล้ว!`);
+  renderCurrentTab();
+}
+
+function openEditDishModal(dishId) {
+  const store = getStoreData().find(s => s.id === activeStoreId);
+  const dish = store.menu.find(d => d.id === dishId);
+
+  $('modal-slot').innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal(event)">
+      <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <h3>แก้ไขเมนู: ${dish.name}</h3>
+          <button style="border:none;background:none;font-size:18px;cursor:pointer;" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-form-body">
+          <div class="form-group">
+            <label>ชื่อเมนูอาหาร</label>
+            <input id="edit-dish-name" class="form-control" value="${dish.name}">
+          </div>
+          <div class="form-group">
+            <label>ราคาขาย (บาท)</label>
+            <input id="edit-dish-price" type="number" class="form-control" value="${dish.price}">
+          </div>
+          <div class="form-group">
+            <label>คำอธิบายเมนู</label>
+            <textarea id="edit-dish-desc" class="form-control">${dish.desc || ''}</textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn-sm" onclick="closeModal()">ยกเลิก</button>
+          <button class="btn-action" onclick="saveEditedDish(${dish.id})">บันทึกการแก้ไข</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function saveEditedDish(dishId) {
+  const name = $('edit-dish-name').value.trim();
+  const price = parseFloat($('edit-dish-price').value);
+  const desc = $('edit-dish-desc').value.trim();
+
+  const stores = getStoreData();
+  const store = stores.find(s => s.id === activeStoreId);
+  const dish = store.menu.find(d => d.id === dishId);
+  if (dish) {
+    dish.name = name;
+    dish.price = price;
+    dish.desc = desc;
+    saveStoreData(stores);
+    closeModal();
+    showToast(`อัปเดตเมนู "${name}" เรียบร้อยแล้ว`);
+    renderCurrentTab();
+  }
+}
+
+function deleteDish(dishId) {
+  if (confirm('คุณต้องการลบเมนูนี้ออกจากร้านใช่หรือไม่?')) {
+    const stores = getStoreData();
+    const store = stores.find(s => s.id === activeStoreId);
+    store.menu = store.menu.filter(d => d.id !== dishId);
+    saveStoreData(stores);
+    showToast('ลบเมนูเรียบร้อยแล้ว');
+    renderCurrentTab();
+  }
+}
+
+// 3. PROMOTIONS VIEW
+function renderPromosView(slot) {
+  const store = getStoreData().find(s => s.id === activeStoreId);
+
+  slot.innerHTML = `
+    <div class="panel-card">
+      <div class="panel-header">
+        <h2 style="display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          โปรโมชั่นและสิทธิพิเศษประจำร้าน
+        </h2>
+        <button class="btn-action" onclick="showToast('เพิ่มโปรโมชั่นใหม่สำเร็จ')">+ สร้างโปรโมชั่นใหม่</button>
+      </div>
+
+      <div style="background: var(--surface-subtle); border-radius: var(--radius-md); padding: 18px; border: 1.5px dashed var(--accent); margin-bottom: 18px;">
+        <b style="color: var(--accent); font-size: 14px;">แคมเปญปัจจุบัน: ${store.promo}</b>
+        <p style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">ระบบจะแสดงป้ายโปรโมชั่นนี้บนหน้าร้านค้าและแอปลูกค้า เพื่อดึงดูดคำสั่งซื้อ</p>
+      </div>
+
+      <div class="form-group" style="max-width: 480px;">
+        <label>แก้ไขข้อความโปรโมชั่นของร้าน</label>
+        <div style="display: flex; gap: 8px;">
+          <input id="store-promo-input" class="form-control" value="${store.promo}">
+          <button class="btn-action" onclick="updateStorePromo()">บันทึก</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function updateStorePromo() {
+  const val = $('store-promo-input').value.trim();
+  const stores = getStoreData();
+  const store = stores.find(s => s.id === activeStoreId);
+  store.promo = val;
+  saveStoreData(stores);
+  showToast('อัปเดตโปรโมชั่นร้านเรียบร้อยแล้ว!');
+  renderCurrentTab();
+}
+
+// 4. ANALYTICS & REPORTS VIEW
+function renderAnalyticsView(slot) {
+  const allOrders = getOrdersData();
+  const storeOrders = allOrders.filter(o => o.restaurantId === activeStoreId);
+  const totalRev = storeOrders.reduce((sum, o) => sum + o.total, 0);
+
+  slot.innerHTML = `
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>ยอดขายรวมสะสม</span>
+          <div class="metric-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+        </div>
+        <div class="metric-value">${formatMoney(totalRev + 14850)}</div>
+        <div class="metric-sub">▲ +18.4% จากสัปดาห์ก่อน</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>จำนวนออเดอร์ทั้งหมด</span>
+          <div class="metric-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+        </div>
+        <div class="metric-value">${storeOrders.length + 184} ออเดอร์</div>
+        <div class="metric-sub">▲ +12% ความถี่การสั่งซื้อ</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span>ยอดสั่งซื้อเฉลี่ย (AOV)</span>
+          <div class="metric-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+        </div>
+        <div class="metric-value">฿178</div>
+        <div class="metric-sub">ยอดต่อคำสั่งซื้อมีแนวโน้มเพิ่มขึ้น</div>
+      </div>
+    </div>
+
+    <!-- Chart Panel -->
+    <div class="panel-card">
+      <div class="panel-header">
+        <h2 style="display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          สถิติยอดขาย 7 วันล่าสุด
+        </h2>
+        <span style="font-size: 12px; color: var(--text-mute);">หน่วย: บาท (THB)</span>
+      </div>
+
+      <!-- Vector SVG Chart -->
+      <div style="height: 220px; width: 100%; position: relative;">
+        <svg viewBox="0 0 600 200" style="width: 100%; height: 100%;">
+          <!-- Grid lines -->
+          <line x1="40" y1="30" x2="580" y2="30" stroke="#E5E7EB" stroke-dasharray="4"/>
+          <line x1="40" y1="80" x2="580" y2="80" stroke="#E5E7EB" stroke-dasharray="4"/>
+          <line x1="40" y1="130" x2="580" y2="130" stroke="#E5E7EB" stroke-dasharray="4"/>
+          <line x1="40" y1="180" x2="580" y2="180" stroke="#E5E7EB"/>
+
+          <!-- Area fill gradient -->
+          <defs>
+            <linearGradient id="grad-area" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#00B14F" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#00B14F" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <polygon points="60,140 140,110 220,130 300,70 380,90 460,50 540,35 540,180 60,180" fill="url(#grad-area)"/>
+
+          <!-- Polyline -->
+          <polyline points="60,140 140,110 220,130 300,70 380,90 460,50 540,35" fill="none" stroke="#00B14F" stroke-width="3" stroke-linecap="round"/>
+
+          <!-- Dots -->
+          <circle cx="60" cy="140" r="4" fill="#00B14F"/>
+          <circle cx="140" cy="110" r="4" fill="#00B14F"/>
+          <circle cx="220" cy="130" r="4" fill="#00B14F"/>
+          <circle cx="300" cy="70" r="4" fill="#00B14F"/>
+          <circle cx="380" cy="90" r="4" fill="#00B14F"/>
+          <circle cx="460" cy="50" r="4" fill="#00B14F"/>
+          <circle cx="540" cy="35" r="5" fill="#FF5A36" stroke="#fff" stroke-width="2"/>
+        </svg>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-mute); padding: 0 40px; margin-top: 6px;">
+        <span>จันทร์</span><span>อังคาร</span><span>พุธ</span><span>พฤหัสฯ</span><span>ศุกร์</span><span>เสาร์</span><span>อาทิตย์ (วันนี้)</span>
+      </div>
+    </div>
+  `;
+}
+
+// 5. SETTINGS VIEW
+function renderSettingsView(slot) {
+  const stores = getStoreData();
+  const store = stores.find(s => s.id === activeStoreId);
+
+  slot.innerHTML = `
+    <div class="panel-card" style="max-width: 600px;">
+      <div class="panel-header">
+        <h2 style="display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          ข้อมูลโปรไฟล์ร้านค้า
+        </h2>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>ชื่อร้านค้า</label>
+        <input id="set-store-name" class="form-control" value="${store.name}">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>เบอร์โทรศัพท์ติดต่อ</label>
+        <input id="set-store-phone" class="form-control" value="${store.phone || '02-789-1122'}">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label>เวลาเปิด - ปิด</label>
+        <input id="set-store-hours" class="form-control" value="${store.hours || '10:00 - 22:00 น.'}">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label>ค่าจัดส่งพื้นฐาน (บาท)</label>
+        <input id="set-store-fee" type="number" class="form-control" value="${store.deliveryFee}">
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: var(--surface-subtle); border-radius: var(--radius-sm); margin-bottom: 20px;">
+        <div>
+          <b style="font-size: 14px; color: var(--text-main);">สถานะการเปิดรับออเดอร์</b>
+          <p style="font-size: 12px; color: var(--text-sub);">หากปิดร้าน ลูกค้าจะไม่สามารถกดสั่งอาหารได้ชั่วคราว</p>
+        </div>
+        <label class="switch-label" onclick="toggleStoreOpenStatus()">
+          <div class="switch-ui ${store.isOpen ? 'on' : ''}">
+            <div class="switch-knob"></div>
+          </div>
+        </label>
+      </div>
+
+      <button class="btn-action" style="width: 100%; justify-content: center;" onclick="saveStoreSettings()">
+        บันทึกการตั้งค่าร้านค้า
+      </button>
+    </div>
+  `;
+}
+
+function toggleStoreOpenStatus() {
+  const stores = getStoreData();
+  const store = stores.find(s => s.id === activeStoreId);
+  store.isOpen = !store.isOpen;
+  saveStoreData(stores);
+  changeActiveStore(activeStoreId);
+}
+
+function saveStoreSettings() {
+  const stores = getStoreData();
+  const store = stores.find(s => s.id === activeStoreId);
+  store.name = $('set-store-name').value.trim();
+  store.phone = $('set-store-phone').value.trim();
+  store.hours = $('set-store-hours').value.trim();
+  store.deliveryFee = parseFloat($('set-store-fee').value);
+  saveStoreData(stores);
+  initStoreSelector();
+  changeActiveStore(activeStoreId);
+  showToast('บันทึกข้อมูลร้านค้าเรียบร้อยแล้ว!');
+}
+
+function closeModal(e) {
+  if (e) e.stopPropagation();
+  $('modal-slot').innerHTML = '';
+}
+
+// Initial Run with hash routing support
+initStoreSelector();
+if (window.location.hash) {
+  const hash = window.location.hash.replace('#', '');
+  if (['orders', 'menu', 'promos', 'analytics', 'settings'].includes(hash)) {
+    switchTab(hash);
+  } else {
+    changeActiveStore(activeStoreId);
+  }
+} else {
+  changeActiveStore(activeStoreId);
+}
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash.replace('#', '');
+  if (hash && ['orders', 'menu', 'promos', 'analytics', 'settings'].includes(hash)) {
+    switchTab(hash);
+  }
+});
+</script>
+</body>
+</html>

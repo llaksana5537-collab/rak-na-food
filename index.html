@@ -1,0 +1,3176 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Rak-Na Delivery | แอปสั่งอาหารออนไลน์ อร่อย ส่งไวทันใจ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Leaflet Interactive Map for Delivery Pinning -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- 120 Restaurants & 1,200 Menus Database -->
+  <script src="restaurants-data.js"></script>
+  <style>
+    :root {
+      --primary: #00B14F;
+      --primary-dark: #00873D;
+      --primary-light: #E6F8EE;
+      --accent: #FF5A36;
+      --accent-gradient: linear-gradient(135deg, #FF6B4A 0%, #FF3366 100%);
+      --primary-gradient: linear-gradient(135deg, #00B14F 0%, #00873D 100%);
+      --emerald-gradient: linear-gradient(135deg, #00B14F 0%, #008f40 100%);
+      --bg: #F4F6F9;
+      --surface: #FFFFFF;
+      --surface-subtle: #F8FAFC;
+      --surface-border: #E8EDF3;
+      --text-main: #191F28;
+      --text-sub: #64748B;
+      --text-mute: #94A3B8;
+      --danger: #EF4444;
+      --warning: #F59E0B;
+      --star: #FFB800;
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.12);
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-full: 9999px;
+      --frame-max-w: 430px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0B0F14;
+      --surface: #141B22;
+      --surface-subtle: #1C2430;
+      --surface-border: #263140;
+      --text-main: #F1F5F9;
+      --text-sub: #94A3B8;
+      --text-mute: #64748B;
+      --primary-light: rgba(0, 177, 79, 0.15);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+      --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: #F1F5F9;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    [data-theme="dark"] body {
+      background: #0B0F19;
+    }
+
+    /* Mobile-First App Shell (Native App Experience, No Phone Bezel) */
+    #app-root {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      background: var(--bg);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 35px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Delivery Pinning Leaflet Map Styles */
+    .map-modal-box {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: sheetUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .map-pin-frame {
+      height: 310px;
+      width: 100%;
+      position: relative;
+      background: #E8F4EC;
+    }
+    #delivery-leaflet-map {
+      height: 100%;
+      width: 100%;
+      z-index: 1;
+    }
+    .center-pin-marker {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -100%);
+      z-index: 500;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.15s ease-out;
+    }
+    .center-pin-marker.dragging {
+      transform: translate(-50%, -125%) scale(1.1);
+    }
+    .pin-bubble {
+      background: #111827;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .pin-svg-icon {
+      filter: drop-shadow(0 4px 8px rgba(0, 177, 79, 0.5));
+    }
+    .pin-shadow {
+      width: 14px;
+      height: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 50%;
+      margin-top: -2px;
+    }
+    .map-controls-float {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .map-float-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text-main);
+      border: 1px solid var(--surface-border);
+      box-shadow: var(--shadow-md);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+      transition: all 0.2s;
+    }
+    .map-float-btn:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+    .landmarks-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px 16px 6px;
+      scrollbar-width: none;
+      background: var(--surface);
+      border-bottom: 1px solid var(--surface-border);
+    }
+    .landmarks-row::-webkit-scrollbar { display: none; }
+    .landmark-chip {
+      background: var(--surface-subtle);
+      border: 1px solid var(--surface-border);
+      color: var(--text-main);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: var(--radius-full);
+      white-space: nowrap;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    .landmark-chip:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary-dark);
+    }
+    .address-form-box {
+      padding: 12px 18px 24px;
+      overflow-y: auto;
+      flex: 1;
+      background: var(--surface);
+    }
+    .leaflet-control-attribution {
+      display: none !important;
+    }
+
+    /* Main Content Viewport */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 8px 16px 88px;
+      scroll-behavior: smooth;
+      position: relative;
+    }
+
+    main::-webkit-scrollbar {
+      width: 4px;
+    }
+    main::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 4px;
+    }
+
+    /* Top App Bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+    .delivery-loc {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+    }
+    .delivery-loc small {
+      font-size: 11px;
+      color: var(--text-mute);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .delivery-loc span {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .icon-btn:hover {
+      transform: scale(1.05);
+      border-color: var(--primary);
+    }
+    .icon-btn:active {
+      transform: scale(0.95);
+    }
+    .badge-dot {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      border: 2px solid var(--surface);
+    }
+
+    /* Search Bar */
+    .search-container {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .search-box {
+      width: 100%;
+      height: 48px;
+      background: var(--surface);
+      border: 1.5px solid var(--surface-border);
+      border-radius: var(--radius-md);
+      padding: 0 42px 0 44px;
+      font-size: 14px;
+      color: var(--text-main);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.25s;
+    }
+    .search-box:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(0, 177, 79, 0.12);
+    }
+    .search-icon-left {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      color: var(--text-mute);
+      pointer-events: none;
+    }
+    .search-clear {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--surface-subtle);
+      border: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      color: var(--text-mute);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+    }
+
+    /* Banner Carousel */
+    .banner-slide {
+      background: var(--emerald-gradient);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 18px;
+      box-shadow: 0 10px 25px -5px rgba(0, 177, 79, 0.35);
+    }
+    .banner-content {
+      position: relative;
+      z-index: 2;
+      max-width: 65%;
+    }
+    .banner-tag {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(8px);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    .banner-slide h2 {
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 6px;
+    }
+    .banner-slide p {
+      font-size: 12px;
+      opacity: 0.9;
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+    .banner-btn {
+      background: #fff;
+      color: #191F28;
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 16px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: transform 0.2s;
+    }
+    .banner-btn:hover {
+      transform: scale(1.04);
+    }
+    .banner-decor {
+      position: absolute;
+      right: -10px;
+      bottom: -15px;
+      width: 155px;
+      height: 155px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    /* STORY-STYLE REAL PHOTO CATEGORY BAR (No emojis) */
+    .cat-story-bar {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      padding: 4px 2px 14px;
+      margin-bottom: 16px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .cat-story-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .story-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+      width: 66px;
+    }
+    .story-thumb-wrap {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      padding: 2.5px;
+      border: 2px solid var(--surface-border);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+    }
+    .story-item.active .story-thumb-wrap {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(0, 177, 79, 0.25);
+      transform: scale(1.06);
+    }
+    .story-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .story-name {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-sub);
+      text-align: center;
+      white-space: nowrap;
+      max-width: 66px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .story-item.active .story-name {
+      color: var(--primary);
+      font-weight: 800;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 18px 0 12px;
+    }
+    .section-title h3 {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    /* Restaurant Card */
+    .rest-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--surface-border);
+      overflow: hidden;
+      margin-bottom: 18px;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      text-align: left;
+    }
+    .rest-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: rgba(0, 177, 79, 0.3);
+    }
+    .rest-card:active {
+      transform: scale(0.99);
+    }
+    .rest-banner-wrap {
+      position: relative;
+      width: 100%;
+      height: 145px;
+      overflow: hidden;
+      background: #e2e8f0;
+    }
+    .rest-banner {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .rest-card:hover .rest-banner {
+      transform: scale(1.05);
+    }
+    .rest-promo-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    }
+    .rest-info {
+      padding: 14px 16px;
+    }
+    .rest-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .rest-name {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+    .rest-rating {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #FEF9C3;
+      color: #854D0E;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+    .rest-meta {
+      font-size: 12px;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    /* Popular Dishes Preview */
+    .dish-preview-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--surface-border);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .dish-preview-row::-webkit-scrollbar {
+      display: none;
+    }
+    .dish-chip {
+      font-size: 11px;
+      background: var(--surface-subtle);
+      color: var(--text-sub);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Dish Item in Menu */
+    .menu-hero {
+      position: relative;
+      margin: -8px -16px 16px;
+      height: 220px;
+      overflow: hidden;
+    }
+    .menu-hero img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .menu-hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0.5) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+      color: #fff;
+    }
+    .menu-hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .menu-hero-bottom {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .menu-hero-title {
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .menu-hero-tags {
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .dish-card {
+      display: flex;
+      gap: 14px;
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid var(--surface-border);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+    }
+    .dish-card:hover {
+      border-color: rgba(0, 177, 79, 0.4);
+      box-shadow: var(--shadow-md);
+    }
+    .dish-img-wrap {
+      width: 95px;
+      height: 95px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      flex-shrink: 0;
+      background: #f1f5f9;
+    }
+    .dish-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    .dish-card:hover .dish-img {
+      transform: scale(1.08);
+    }
+    .dish-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .dish-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+    .dish-desc {
+      font-size: 12px;
+      color: var(--text-sub);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .dish-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+    }
+    .dish-price {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--accent);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .add-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 177, 79, 0.3);
+      transition: all 0.2s;
+    }
+    .add-btn:hover {
+      background: var(--primary-dark);
+      transform: scale(1.08);
+    }
+    .qty-counter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-subtle);
+      border-radius: var(--radius-full);
+      padding: 3px;
+      border: 1px solid var(--surface-border);
+    }
+    .qty-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: var(--surface);
+      color: var(--text-main);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+    }
+    .qty-btn.plus {
+      background: var(--primary);
+      color: #fff;
+    }
+    .qty-val {
+      font-size: 13px;
+      font-weight: 700;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    /* Floating Cart Sticky Bar */
+    .floating-cart-bar {
+      position: sticky;
+      bottom: 12px;
+      margin-top: 16px;
+      z-index: 80;
+    }
+    .cart-btn-cta {
+      width: 100%;
+      background: var(--emerald-gradient);
+      color: #fff;
+      border: none;
+      padding: 14px 20px;
+      border-radius: var(--radius-lg);
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      box-shadow: 0 10px 25px -4px rgba(0, 177, 79, 0.5);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .cart-btn-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px -4px rgba(0, 177, 79, 0.6);
+    }
+    .cart-badge-count {
+      background: rgba(255, 255, 255, 0.25);
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /* Modal / Bottom Sheet */
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      animation: fadeIn 0.2s ease;
+    }
+    .modal-sheet {
+      background: var(--surface);
+      border-radius: 32px 32px 0 0;
+      max-height: 85%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .modal-handle {
+      width: 44px;
+      height: 5px;
+      background: var(--surface-border);
+      border-radius: 10px;
+      margin: 12px auto 8px;
+    }
+    .modal-body {
+      padding: 10px 20px 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .modal-dish-header {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--surface-border);
+    }
+    .modal-dish-img {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-md);
+      object-fit: cover;
+    }
+    .option-group { margin-bottom: 18px; }
+    .option-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .option-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: var(--surface-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 8px;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: all 0.2s;
+    }
+    .option-item.selected {
+      background: var(--primary-light);
+      border-color: var(--primary);
+    }
+    .option-radio {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--text-mute);
+      display: grid;
+      place-items: center;
+      margin-right: 10px;
+    }
+    .option-item.selected .option-radio {
+      border-color: var(--primary);
+      background: var(--primary);
+    }
+    .option-radio-dot {
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+    }
+    .option-checkbox {
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      border: 2px solid var(--text-mute);
+      display: grid;
+      place-items: center;
+      margin-right: 10px;
+    }
+    .option-item.selected .option-checkbox {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .option-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--surface-border);
+      background: var(--surface);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    /* Cart & Checkout */
+    .card-box {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      border: 1px solid var(--surface-border);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 14px;
+    }
+    .address-card {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      cursor: pointer;
+    }
+    .address-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--primary-light);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .address-details b {
+      font-size: 14px;
+      display: block;
+      color: var(--text-main);
+    }
+    .address-details p {
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+
+    .voucher-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .voucher-input {
+      flex: 1;
+      height: 42px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--surface-border);
+      background: var(--surface-subtle);
+      padding: 0 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      text-transform: uppercase;
+    }
+    .voucher-btn {
+      padding: 0 16px;
+      border-radius: var(--radius-md);
+      background: var(--text-main);
+      color: var(--surface);
+      border: none;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .voucher-chips {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .v-chip {
+      font-size: 11px;
+      background: rgba(255, 90, 54, 0.1);
+      color: var(--accent);
+      border: 1px dashed var(--accent);
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .bill-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-sub);
+      padding: 5px 0;
+    }
+    .bill-row.discount {
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .bill-row.total {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-main);
+      border-top: 1px dashed var(--surface-border);
+      margin-top: 8px;
+      padding-top: 12px;
+    }
+
+    /* REAL VECTOR LOGOS FOR PAYMENT (No cartoon emojis) */
+    .pay-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--surface-border);
+      background: var(--surface);
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      width: 100%;
+    }
+    .pay-card.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    .pay-logo-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #FFFFFF;
+      border: 1px solid var(--surface-border);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      padding: 6px;
+      box-shadow: var(--shadow-sm);
+    }
+    .pay-logo-svg {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .pay-info b {
+      font-size: 14px;
+      color: var(--text-main);
+      display: block;
+    }
+    .pay-info small {
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+    .pay-check {
+      margin-left: auto;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--text-mute);
+    }
+    .pay-card.selected .pay-check {
+      border-color: var(--primary);
+      background: var(--primary);
+      box-shadow: inset 0 0 0 3px #fff;
+    }
+
+    /* Thai QR Payment Frame */
+    .promptpay-frame {
+      background: #003B71;
+      border-radius: 20px;
+      overflow: hidden;
+      color: #fff;
+      margin: 14px 0;
+      box-shadow: 0 10px 30px rgba(0, 59, 113, 0.35);
+      border: 1px solid #145388;
+    }
+    .pp-header {
+      padding: 14px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      background: #00284D;
+    }
+    .pp-content {
+      background: #FFFFFF;
+      color: #191F28;
+      padding: 20px;
+      text-align: center;
+    }
+    .pp-qr-box {
+      width: 190px;
+      height: 190px;
+      margin: 0 auto 12px;
+      padding: 10px;
+      background: #fff;
+      border: 2px dashed #003B71;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+    }
+    .pp-amount {
+      font-size: 24px;
+      font-weight: 800;
+      color: #003B71;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Tracking & Map */
+    .map-canvas-card {
+      height: 200px;
+      border-radius: var(--radius-lg);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-md);
+      background: #E8F4EC;
+    }
+    .vector-map-bg {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+    }
+    .map-eta-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      padding: 8px 14px;
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      z-index: 10;
+    }
+    .eta-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 177, 79, 0.7); }
+      70% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(0, 177, 79, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 177, 79, 0); }
+    }
+
+    .map-rider-marker {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 42px;
+      height: 42px;
+      background: var(--primary);
+      border: 3px solid #fff;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 5;
+      transition: left 1.2s ease, top 1.2s ease;
+      overflow: hidden;
+    }
+    .map-dest-marker {
+      position: absolute;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 38px;
+      height: 38px;
+      background: var(--accent);
+      border: 3px solid #fff;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 18px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      z-index: 4;
+    }
+
+    /* Rider Card */
+    .rider-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      border: 1px solid var(--surface-border);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 14px;
+    }
+    .rider-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--primary);
+    }
+    .rider-info { flex: 1; }
+    .rider-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .rider-plate {
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+    .rider-actions { display: flex; gap: 8px; }
+    .rider-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--surface-border);
+      background: var(--surface-subtle);
+      color: var(--primary);
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    /* Navigation Bar */
+    nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      background: var(--surface);
+      border-top: 1px solid var(--surface-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 10px 10px;
+      z-index: 100;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      color: var(--text-mute);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      transition: all 0.2s;
+      position: relative;
+    }
+    .nav-item svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 2.2;
+      stroke: currentColor;
+      fill: none;
+      transition: transform 0.2s;
+    }
+    .nav-item.active { color: var(--primary); }
+    .nav-badge {
+      position: absolute;
+      top: 2px;
+      right: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      padding: 0 4px;
+      border: 2px solid var(--surface);
+    }
+
+    .toast-box {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(25, 31, 40, 0.95);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 999;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: popDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+    }
+    @keyframes popDown {
+      from { transform: translate(-50%, -20px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-root">
+  <!-- App Views -->
+  <main id="main-content"></main>
+
+  <!-- Bottom Navigation -->
+  <nav id="bottom-nav"></nav>
+</div>
+
+<!-- Modal Container -->
+<div id="modal-container"></div>
+
+<!-- Toast Container -->
+<div id="toast-slot"></div>
+
+<script>
+// --- AUDIO SYNTHESIZER ---
+let audioEnabled = true;
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) audioCtx = new AudioContext();
+  }
+}
+
+function playSound(type) {
+  if (!audioEnabled) return;
+  try {
+    initAudio();
+    if (!audioCtx || audioCtx.state === 'suspended') audioCtx.resume();
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'click') {
+      osc.frequency.setValueAtTime(600, t);
+      osc.frequency.exponentialRampToValueAtTime(800, t + 0.04);
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      osc.start(t);
+      osc.stop(t + 0.04);
+    } else if (type === 'add') {
+      osc.frequency.setValueAtTime(320, t);
+      osc.frequency.exponentialRampToValueAtTime(580, t + 0.12);
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      osc.start(t);
+      osc.stop(t + 0.12);
+    } else if (type === 'success') {
+      osc.frequency.setValueAtTime(523.25, t);
+      osc.frequency.setValueAtTime(659.25, t + 0.1);
+      osc.frequency.setValueAtTime(783.99, t + 0.2);
+      gain.gain.setValueAtTime(0.15, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.start(t);
+      osc.stop(t + 0.35);
+    }
+  } catch(e) {}
+}
+
+function toggleAudio() {
+  audioEnabled = !audioEnabled;
+  const btn = $('audio-btn');
+  if (btn) {
+    btn.innerHTML = audioEnabled ? 
+      `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>` : 
+      `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+  }
+  showToast(audioEnabled ? 'เปิดเสียงเอฟเฟกต์แล้ว' : 'ปิดเสียงเอฟเฟกต์แล้ว');
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  const btn = $('theme-btn');
+  if (btn) {
+    btn.innerHTML = next === 'dark' ? 
+      `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>` : 
+      `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+  }
+  playSound('click');
+  showToast(next === 'dark' ? 'เปลี่ยนเป็นโหมดกลางคืน' : 'เปลี่ยนเป็นโหมดกลางวัน');
+}
+
+
+
+// --- 12 CATEGORIES WITH REAL FOOD PHOTOGRAPHY (NO CARTOON EMOJIS) ---
+const CATEGORIES = (typeof window !== 'undefined' && window.CATEGORIES) ? window.CATEGORIES : [
+  { id: 'all', name: 'ทั้งหมด', img: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=300&q=80' },
+  { id: 'thai', name: 'อาหารไทย', img: 'https://plus.unsplash.com/premium_photo-1661486609016-93ce09ac77bf?auto=format&fit=crop&w=300&q=80' },
+  { id: 'noodle', name: 'ก๋วยเตี๋ยว', img: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=300&q=80' },
+  { id: 'japanese', name: 'ญี่ปุ่น', img: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=300&q=80' },
+  { id: 'korean', name: 'เกาหลี', img: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=300&q=80' },
+  { id: 'western', name: 'เบอร์เกอร์', img: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=300&q=80' },
+  { id: 'isan', name: 'ส้มตำ & ยำ', img: 'https://images.unsplash.com/photo-1706176224199-cd97c73d7640?auto=format&fit=crop&w=300&q=80' },
+  { id: 'cafe', name: 'กาแฟ & คาเฟ่', img: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=300&q=80' },
+  { id: 'dessert', name: 'ของหวาน', img: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=300&q=80' },
+  { id: 'healthy', name: 'อาหารคลีน', img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=300&q=80' },
+  { id: 'boba', name: 'ชานมไข่มุก', img: 'https://images.unsplash.com/photo-1774979300682-f92e5988d55b?auto=format&fit=crop&w=300&q=80' },
+  { id: 'chinese', name: 'ติ่มซำ & จีน', img: 'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?auto=format&fit=crop&w=300&q=80' },
+  { id: 'steak', name: 'สเต็ก & กริลล์', img: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=300&q=80' }
+];
+
+// --- 120 RESTAURANTS & 1,200 MENUS (10 PER CATEGORY) ---
+const DEFAULT_RESTAURANTS = (typeof window !== 'undefined' && window.DEFAULT_RESTAURANTS) ? window.DEFAULT_RESTAURANTS : [
+  {
+    id: 1,
+    name: 'ครัวทองเอก อาหารไทยต้นตำรับ',
+    category: 'อาหารไทย',
+    rating: 4.9,
+    reviewsCount: '1.8k+',
+    deliveryTime: '20-25 นาที',
+    distance: '1.2 กม.',
+    deliveryFee: 15,
+    promo: 'ลด 20% สูงสุด 50฿ โค้ด RAKNA50',
+    coverImg: 'https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-1122',
+    hours: '10:00 - 22:00 น.',
+    commissionGP: 25,
+    menu: [
+      { id: 101, name: 'ข้าวกะเพราเนื้อวากิวสับไข่เป็ดกรอบ', desc: 'เนื้อวากิวสับคั่วกระทะเหล็กสูตรโบราณ หอมกลิ่นกระทะ พริกแห้งใบกะเพราป่า เสิร์ฟพร้อมไข่เป็ดดาวกรอบ', price: 89, img: 'https://plus.unsplash.com/premium_photo-1661486609016-93ce09ac77bf?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 102, name: 'ต้มยำกุ้งแม่น้ำน้ำข้นเห็ดฟาง', desc: 'ต้มยำกุ้งแม่น้ำตัวโต มันกุ้งเยิ้ม สมุนไพรไทยแท้ ข่า ตะไคร้ ใบมะกรูด รสจัดจ้าน', price: 189, img: 'https://images.unsplash.com/photo-1548943487-a2e4e43b4853?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 103, name: 'แกงเขียวหวานไก่ยอดมะพร้าวอ่อน', desc: 'พริกแกงเขียวหวานตำเอง กะทิสดคั้นมือ ไก่นุ่มและยอดมะพร้าวกรุบกรอบ', price: 129, img: 'https://plus.unsplash.com/premium_photo-1694699355661-950297cbe618?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 104, name: 'ข้าวเหนียวมะม่วงน้ำดอกไม้ทอง', desc: 'มะม่วงน้ำดอกไม้หวานฉ่ำคัดพิเศษ ข้าวเหนียวมูนกะทิสดหอมมัน โรยถั่วทอง', price: 89, img: 'https://images.unsplash.com/photo-1582801205465-c0d029e85a1c?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 2,
+    name: 'โกฮับ เตี๋ยวเรืออยุธยา & เส้นสด',
+    category: 'ก๋วยเตี๋ยว',
+    rating: 4.8,
+    reviewsCount: '2.1k+',
+    deliveryTime: '15-20 นาที',
+    distance: '0.8 กม.',
+    deliveryFee: 10,
+    promo: 'ฟรีค่าส่ง 3 กม. แรก',
+    coverImg: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-2233',
+    hours: '09:00 - 21:00 น.',
+    commissionGP: 20,
+    menu: [
+      { id: 201, name: 'ก๋วยเตี๋ยวเรือน้ำตกเนื้อคุโรบุตะ', desc: 'น้ำตกสูตรเด็ดหอมเครื่องเทศตุ๋น 8 ชม. เนื้อหมูคุโรบุตะนุ่มละมุน พร้อมกากหมูกรอบ', price: 65, img: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 202, name: 'ผัดไทยกุ้งแม่น้ำสดเตาถ่าน', desc: 'เส้นจันท์เหนียวนุ่ม ผัดซอสมะขามสูตรโบราณ กุ้งแม่น้ำสดตัวใหญ่ กลิ่นหอมกระทะ', price: 119, img: 'https://images.unsplash.com/photo-1559314809-0d155014e29e?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 203, name: 'บะหมี่เกี๊ยวกุ้งหมูแดงอบน้ำผึ้ง', desc: 'บะหมี่ไข่เส้นฝอย เกี๊ยวกุ้งเต็มคำ หมูแดงอบน้ำผึ้งฉ่ำ พร้อมน้ำซุปกระดูกหมูหวานกลมกล่อม', price: 79, img: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 3,
+    name: 'Shinjuku Sushi & Ramen Bar',
+    category: 'ญี่ปุ่น',
+    rating: 4.95,
+    reviewsCount: '3.4k+',
+    deliveryTime: '25-35 นาที',
+    distance: '2.5 กม.',
+    deliveryFee: 20,
+    promo: 'ลด 15% เมนูซูชิเซ็ต',
+    coverImg: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-3344',
+    hours: '11:00 - 22:00 น.',
+    commissionGP: 25,
+    menu: [
+      { id: 301, name: 'พรีเมียมแซลมอนซูชิเซ็ต 8 คำ', desc: 'แซลมอนนอร์เวย์สดนำเข้า ซาชิมิ นิกิริ และแซลมอนเบิร์นไฟราดซอสไซเคียว', price: 259, img: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 302, name: 'ฮากาตะทงคตสึราเมนหมูชาชูรมควัน', desc: 'น้ำซุปกระดูกหมูเคี่ยวนาน 14 ชั่วโมง เส้นราเมนนำเข้า หมูชาชูรมควันนุ่มละลายในปาก', price: 179, img: 'https://images.unsplash.com/photo-1557872943-16a5ac26437e?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 303, name: 'ข้าวหน้าเนื้อวากิวดอนไข่ออนเซ็น', desc: 'เนื้อวากิวออสเตรเลียสไลซ์ ผัดซอสหวานสไตล์ญี่ปุ่น ท็อปไข่ออนเซ็นเยิ้มๆ', price: 219, img: 'https://images.unsplash.com/photo-1761064864532-1794a1f8f784?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 4,
+    name: 'Seoul Chikin & Pocha',
+    category: 'เกาหลี',
+    rating: 4.85,
+    reviewsCount: '1.5k+',
+    deliveryTime: '25-30 นาที',
+    distance: '1.9 กม.',
+    deliveryFee: 15,
+    promo: 'เซ็ตไก่ทอดแถมต็อกบกกี',
+    coverImg: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-4455',
+    hours: '11:00 - 23:00 น.',
+    commissionGP: 22,
+    menu: [
+      { id: 401, name: 'ไก่ทอดเกาหลีซอสซอยการ์ลิค 6 ชิ้น', desc: 'ไก่ทอดกรอบนอกนุ่มฉ่ำใน คลุกเคล้าซอสกระเทียมหวานเค็มสูตรฮงแด โรยงาขาวคั่ว', price: 149, img: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 402, name: 'ต็อกบกกีชีสลาวาเยิ้ม', desc: 'แป้งต็อกเหนียวนุ่ม เคี่ยวในซอสโคชูจังรสเข้ม ท็อปมอสซาเรลล่าชีสยืดเยิ้มจุใจ', price: 139, img: 'https://images.unsplash.com/photo-1747037693812-5ed37684d760?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 403, name: 'ข้าวผัดกิมจิหมูสามชั้นกระทะร้อน', desc: 'ข้าวผัดกิมจิหมักโฮมเมด หมูสามชั้นชิ้นพอดีคำ เสิร์ฟพร้อมไข่ดาวและสาหร่ายเกาหลี', price: 119, img: 'https://images.unsplash.com/photo-1785288171672-6b1800a1e1f6?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 5,
+    name: 'The Artisan Craft Burgers & Pizza',
+    category: 'เบอร์เกอร์',
+    rating: 4.9,
+    reviewsCount: '2.8k+',
+    deliveryTime: '25-35 นาที',
+    distance: '3.0 กม.',
+    deliveryFee: 20,
+    promo: 'ลด 10% เมื่อสั่งครบ 300฿',
+    coverImg: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-5566',
+    hours: '11:00 - 22:30 น.',
+    commissionGP: 25,
+    menu: [
+      { id: 501, name: 'ดับเบิ้ลเบคอนชีสเบอร์เกอร์แองกัส', desc: 'เนื้อแองกัสบดสดฉ่ำ 2 ชั้น ดับเบิ้ลเชดด้าชีส เบคอนกรอบ และซอสทรัฟเฟิลมาโยในขนมปังบริออชเนยสด', price: 239, img: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 502, name: 'พิซซ่าเตาฟืนทรัฟเฟิลพาร์มาแฮม', desc: 'แป้งพิซซ่าหมัก 48 ชม. อบเตาฟืน ซอสครีมเห็ดทรัฟเฟิลดำ มอสซาเรลล่า และพาร์มาแฮม', price: 299, img: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 503, name: 'เฟรนช์ฟรายส์ทรัฟเฟิลดิปดิปปิ้ง', desc: 'มันฝรั่งทอดแท่งทองกรอบนอกนุ่มใน คลุกเกลือทะเล เสิร์ฟคู่ซอสมาโยทรัฟเฟิลแท้', price: 89, img: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 6,
+    name: 'แซ่บนัว ส้มตำถาดเมืองอุบล',
+    category: 'ส้มตำ & ยำ',
+    rating: 4.88,
+    reviewsCount: '3.1k+',
+    deliveryTime: '20-30 นาที',
+    distance: '1.5 กม.',
+    deliveryFee: 15,
+    promo: 'สั่งส้มตำถาดฟรีแคบหมูกรอบ',
+    coverImg: 'https://images.unsplash.com/photo-1706176224199-cd97c73d7640?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-6677',
+    hours: '10:30 - 21:30 น.',
+    commissionGP: 20,
+    menu: [
+      { id: 601, name: 'ส้มตำถาดซีฟู้ดรวมมิตรปลาร้านัว', desc: 'ตำป่าปลาร้าต้มสุกหอมนัว เครื่องแน่น กุ้งสด หมึกสด แคบหมู ไข่ต้ม ขนมจีน ผักเคียงจัดเต็มถาด', price: 169, img: 'https://images.unsplash.com/photo-1706176224199-cd97c73d7640?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 602, name: 'คอหมูย่างเตาถ่านน้ำจิ้มแจ่วมะขาม', desc: 'คอหมูแท้หมักเครื่องเทศข้ามคืน ย่างเตาถ่านหอมกรุ่น เนื้อนุ่มฉ่ำ จิ้มแจ่วมะขามรสเด็ด', price: 119, img: 'https://images.unsplash.com/photo-1592903475970-ed2fc67da45e?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 603, name: 'ต้มแซ่บกระดูกหมูอ่อนใบมะขาม', desc: 'กระดูกอ่อนตุ๋นเปื่อยเคี้ยวกรุบ น้ำซุปสมุนไพรสด ซดคล่องคอ รสแซ่บจี๊ดถึงใจ', price: 129, img: 'https://images.unsplash.com/photo-1548943487-a2e4e43b4853?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 7,
+    name: 'Roast & Brew Specialty Coffee',
+    category: 'กาแฟ & คาเฟ่',
+    rating: 4.92,
+    reviewsCount: '2.3k+',
+    deliveryTime: '15-20 นาที',
+    distance: '0.9 กม.',
+    deliveryFee: 10,
+    promo: 'จับคู่กาแฟ+ครัวซองต์ลด 25฿',
+    coverImg: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-7788',
+    hours: '07:30 - 18:00 น.',
+    commissionGP: 20,
+    menu: [
+      { id: 701, name: 'เดอร์ตี้คอฟฟี่ (Signature Dirty Coffee)', desc: 'นมสดเย็นจัดสูตรพิเศษ ราดด้วยช็อตเอสเปรสโซ่คั่วกลางเข้ม รสสัมผัสนุ่มละมุนไล่ระดับ', price: 95, img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 702, name: 'โคลด์บรูว์ส้มยูซุสปาร์คกลิ้ง', desc: 'กาแฟสกัดเย็น 18 ชม. ผสานน้ำส้มยูซุแท้จากญี่ปุ่นและโทนิคซ่า สดชื่นคลายร้อน', price: 105, img: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 703, name: 'ครัวซองต์เนยฝรั่งเศสสด', desc: 'แป้งพัฟฟ์หลายชั้นนำเข้าจากฝรั่งเศส อบสดใหม่ทุกเช้า หอมเนยแท้ กรอบนอกนุ่มชุ่มฉ่ำใน', price: 75, img: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 8,
+    name: 'La Dolce Vita Desserts & Bingsu',
+    category: 'ของหวาน',
+    rating: 4.86,
+    reviewsCount: '1.7k+',
+    deliveryTime: '20-30 นาที',
+    distance: '1.8 กม.',
+    deliveryFee: 15,
+    promo: 'ลด 15% ทุกเมนูบิงซู',
+    coverImg: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-8899',
+    hours: '11:00 - 22:00 น.',
+    commissionGP: 22,
+    menu: [
+      { id: 801, name: 'สโนว์บิงซูสตรอว์เบอร์รีเกาหลี', desc: 'เกล็ดหิมะนมสดนุ่มฟู ท็อปสตรอว์เบอร์รีเกาหลีสดลูกโต ราดซอสโฮมเมดและนมข้นหวาน', price: 189, img: 'https://images.unsplash.com/photo-1771209802058-3b40ce534905?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 802, name: 'ช็อกโกแลตฟองดองท์ลาวาเยิ้ม', desc: 'เค้กช็อกโกแลตเบลเยียมเข้มข้น 70% อุ่นร้อน บิแล้วไส้ช็อกโกแลตไหลเยิ้ม เสิร์ฟพร้อมไอศกรีมวานิลลา', price: 145, img: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 803, name: 'เครปฝรั่งเศสนูเทลล่ากล้วยหอมทอง', desc: 'แป้งเครปบางนุ่ม ทานูเทลล่าฉ่ำๆ กล้วยหอมทองสด วิปครีม และอัลมอนด์อบกรอบ', price: 95, img: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 9,
+    name: 'Green Garden Clean & Plant Bowls',
+    category: 'อาหารคลีน',
+    rating: 4.91,
+    reviewsCount: '1.2k+',
+    deliveryTime: '20-25 นาที',
+    distance: '1.1 กม.',
+    deliveryFee: 15,
+    promo: 'สายสุขภาพลด 30฿ โค้ด CLEAN30',
+    coverImg: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-9900',
+    hours: '08:30 - 20:30 น.',
+    commissionGP: 20,
+    menu: [
+      { id: 901, name: 'โบวล์แซลมอนย่างอะโวคาโดคีนัว', desc: 'แซลมอนนอร์เวย์ย่าง อะโวคาโดฮาสส์ คีนัวออร์แกนิก ไข่ต้มยางมะตูม ผักสลัดไฮโดรโปนิกส์ และน้ำสลัดงาญี่ปุ่น', price: 195, img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 902, name: 'ซีซาร์สลัดอกไก่ย่างไข่ต้มยางมะตูม', desc: 'อกไก่หมักสมุนไพรย่างนุ่ม ผักคอสกรอบ ขนมปังกรอบ ชีสพาร์เมซานขูดสด และน้ำสลัดซีซาร์ไขมันต่ำ', price: 145, img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 903, name: 'สมูทตี้โบวล์อาซาอิเบอร์รี่รวม', desc: 'อาซาอิเบอร์รี่แท้ปั่นเนื้อข้น ท็อปด้วยบลูเบอร์รี สตรอว์เบอร์รี กราโนล่า และเมล็ดเจีย', price: 165, img: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 10,
+    name: 'Tiger Boba & Taiwanese Tea',
+    category: 'ชานมไข่มุก',
+    rating: 4.87,
+    reviewsCount: '4.2k+',
+    deliveryTime: '15-20 นาที',
+    distance: '0.7 กม.',
+    deliveryFee: 10,
+    promo: '1 แถม 1 ชานมบราวน์ชูการ์',
+    coverImg: 'https://images.unsplash.com/photo-1774979300682-f92e5988d55b?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-0011',
+    hours: '10:00 - 21:00 น.',
+    commissionGP: 20,
+    menu: [
+      { id: 1001, name: 'ชานมไข่มุกบราวน์ชูการ์ครีมชีส', desc: 'ใบชาไต้หวันแท้ต้มสด ไข่มุกต้มน้ำตาลทรายแดงเคี่ยวมือเหนียวนุ่ม ท็อปครีมชีสพ่นไฟหอมมัน', price: 75, img: 'https://images.unsplash.com/photo-1774979300682-f92e5988d55b?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1002, name: 'ชาไทยโบราณเฉาก๊วยนมสดแท้', desc: 'ชาไทยพรีเมียมเข้มข้น หอมกลิ่นชาแท้ ใส่นมสดฮอกไกโดและเฉาก๊วยเนื้อหนึบ', price: 65, img: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1003, name: 'ชาพีชเลมอนสดเย็นชื่นใจ', desc: 'ชาอู่หลงหอมหมื่นลี้ ผสานเนื้อพีชหวานฉ่ำและเลมอนคั้นสด เปรี้ยวอมหวานสดชื่น', price: 65, img: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 11,
+    name: 'ฮั่งเส็ง ติ่มซำ & เป็ดย่างฮ่องกง',
+    category: 'ติ่มซำ & จีน',
+    rating: 4.93,
+    reviewsCount: '2.5k+',
+    deliveryTime: '25-35 นาที',
+    distance: '2.8 กม.',
+    deliveryFee: 20,
+    promo: 'เป็ดย่างจานใหญ่ลด 10%',
+    coverImg: 'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-1122',
+    hours: '08:00 - 21:00 น.',
+    commissionGP: 22,
+    menu: [
+      { id: 1101, name: 'เป็ดย่างฮ่องกงแท้หนังกรอบเนื้อนุ่ม', desc: 'เป็ดเชอร์รี่คัดพิเศษ ย่างเตาถ่านหนังกรอบหอมกลิ่นน้ำผึ้งและสมุนไพรจีน ราดซอสสูตรลับกวางตุ้ง', price: 219, img: 'https://images.unsplash.com/photo-1610540871860-2f2ecf619696?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1102, name: 'ขนมจีบกุ้งจักรพรรดิคำโต 4 ลูก', desc: 'เนื้อกุ้งลายเสือเน้นๆ ไส้แน่นเด้งกรุบ ห่อแป้งเกี๊ยวบาง โรยกระเทียมเจียว', price: 85, img: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1103, name: 'ซาลาเปาลาวาไข่เค็มเยิ้ม 3 ลูก', desc: 'แป้งนุ่มฟู บิแล้วไส้คัสตาร์ดไข่เค็มมันหวานเค็มไหลทะลัก อุ่นร้อนพร้อมทาน', price: 75, img: 'https://images.unsplash.com/photo-1563104307-944928bb174a?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  },
+  {
+    id: 12,
+    name: 'Prime Cut Steakhouse & Grill',
+    category: 'สเต็ก & กริลล์',
+    rating: 4.96,
+    reviewsCount: '1.9k+',
+    deliveryTime: '30-40 นาที',
+    distance: '3.2 กม.',
+    deliveryFee: 25,
+    promo: 'สเต็กเซ็ตพรีเมียมลด 50฿ โค้ด RAKNA50',
+    coverImg: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+    isOpen: true,
+    phone: '02-789-1133',
+    hours: '11:30 - 22:30 น.',
+    commissionGP: 25,
+    menu: [
+      { id: 1201, name: 'สเต็กเนื้อริบอายออสเตรเลียย่างเตาถ่าน', desc: 'เนื้อริบอายเกรนเฟด 150 วัน ลายหินอ่อนสวย ย่างมีเดียมแรร์ เสิร์ฟคู่ซอสไวน์แดง', price: 349, img: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1202, name: 'สเต็กพอร์คชอปคุโรบุตะซอสพริกไทยดำ', desc: 'หมูคุโรบุตะชิ้นหนานุ่มฉ่ำ ย่างเนยสดและโรสแมรี่ ราดซอสพริกไทยดำเข้มข้น', price: 249, img: 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&w=600&q=80', inStock: true },
+      { id: 1203, name: 'ซี่โครงหมูบาร์บีคิวรมควันนุ่มร่อน', desc: 'ซี่โครงหมูทาซอสบาร์บีคิวสูตรเท็กซัส รมควันไม้นาน 6 ชม. เนื้อนุ่มล่อนจากกระดูก', price: 299, img: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80', inStock: true }
+    ]
+  }
+];
+
+// Ensure shared database version 9 with 120 restaurants and 1,200 menus
+const DB_VERSION = 9;
+if (localStorage.getItem('rakna_db_v') !== String(DB_VERSION)) {
+  localStorage.setItem('rakna_restaurants', JSON.stringify(DEFAULT_RESTAURANTS));
+  localStorage.setItem('rakna_db_v', String(DB_VERSION));
+}
+
+function getLiveRestaurants() {
+  try {
+    const saved = localStorage.getItem('rakna_restaurants');
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return DEFAULT_RESTAURANTS;
+}
+let RESTAURANTS = getLiveRestaurants();
+
+const ADDRESSES = [
+  {
+    id: 'home',
+    name: 'บ้านพัก ถนนสละชีพ อ.เมืองประจวบคีรีขันธ์',
+    houseNo: '88/12 ซอยสุขจิต 3',
+    landmarkName: 'ถนนสละชีพ อ.เมืองประจวบคีรีขันธ์',
+    dropOffSpot: 'วางไว้ที่โต๊ะม้าหินอ่อนหน้าบ้าน / แขวนไว้ที่รั้ว',
+    desc: 'บ้านเลขที่ 88/12 ซอยสุขจิต 3 ถ.สละชีพ ต.ประจวบคีรีขันธ์ อ.เมือง จ.ประจวบคีรีขันธ์',
+    lat: 11.8105,
+    lng: 99.7965,
+    phone: '081-987-6543',
+    note: 'เข้าซอยตรงข้ามวัดเกาะหลัก กดกริ่งหน้าบ้าน'
+  },
+  {
+    id: 'work',
+    name: 'สำนักงานเทศบาลเมืองประจวบคีรีขันธ์',
+    houseNo: 'อาคารสำนักงานเทศบาล ชั้น 2',
+    landmarkName: 'ถ.มหาราช 1 อ.เมืองประจวบคีรีขันธ์',
+    dropOffSpot: 'จุดรับ-ส่งเอกสาร ประชาสัมพันธ์หน้าตึก',
+    desc: 'ถ.มหาราช 1 ต.ประจวบคีรีขันธ์ อ.เมือง จ.ประจวบคีรีขันธ์',
+    lat: 11.8130,
+    lng: 99.7980,
+    phone: '032-611-204',
+    note: 'โทรแจ้งเมื่อถึงหน้าทางเข้าตึก'
+  },
+  {
+    id: 'resort',
+    name: 'ที่พักรับรอง อ่าวมะนาว (กองบิน 5)',
+    houseNo: 'บ้านพักรับรอง กองทัพอากาศ หลังที่ 5',
+    landmarkName: 'อ่าวมะนาว ต.เกาะหลัก',
+    dropOffSpot: 'จุดแลกบัตร ป้อมยามประตูทางเข้ากองบิน 5',
+    desc: 'อ่าวมะนาว ต.เกาะหลัก อ.เมือง จ.ประจวบคีรีขันธ์',
+    lat: 11.7850,
+    lng: 99.8050,
+    phone: '089-123-4567',
+    note: 'แจ้งเจ้าหน้าที่ รปภ. ว่ามาส่งอาหารบ้านพักรับรอง'
+  }
+];
+
+const LANDMARKS = [
+  { name: 'เมืองประจวบฯ (สละชีพ)', desc: 'ถนนสละชีพ อ.เมืองประจวบคีรีขันธ์', lat: 11.8105, lng: 99.7965 },
+  { name: 'อ่าวมะนาว (กองบิน 5)', desc: 'อ่าวมะนาว ต.เกาะหลัก อ.เมือง จ.ประจวบคีรีขันธ์', lat: 11.7850, lng: 99.8050 },
+  { name: 'เขาช่องกระจก / ศาลหลักเมือง', desc: 'วัดธรรมิการามวรวิหาร อ.เมือง จ.ประจวบคีรีขันธ์', lat: 11.8155, lng: 99.8020 },
+  { name: 'อ่าวน้อย (เขาคั่นกระได)', desc: 'ต.อ่าวน้อย อ.เมือง จ.ประจวบคีรีขันธ์', lat: 11.8540, lng: 99.8240 },
+  { name: 'ปากน้ำปราณ (ปราณบุรี)', desc: 'หาดปากน้ำปราณ อ.ปราณบุรี จ.ประจวบคีรีขันธ์', lat: 12.3950, lng: 99.9950 },
+  { name: 'หัวหิน (ตลาดโต้รุ่ง/หาด)', desc: 'ถนนเดชานุชิต อ.หัวหิน จ.ประจวบคีรีขันธ์', lat: 12.5707, lng: 99.9579 }
+];
+
+// Official Thai Banks for Mobile Banking Payment
+const THAI_BANKS = [
+  { id: 'kbank', name: 'ธนาคารกสิกรไทย', app: 'K PLUS', color: '#00A950', badge: 'KBANK', accNo: 'xxx-x-x5916-x', accName: 'น.ส. ลักษณา มีท่อธาร', ref: '004999160440888' },
+  { id: 'scb', name: 'ธนาคารไทยพาณิชย์', app: 'SCB EASY', color: '#4E2A84', badge: 'SCB', accNo: 'xxx-x-x5916-x', accName: 'น.ส. ลักษณา มีท่อธาร', ref: '004999160440888' },
+  { id: 'bbl', name: 'ธนาคารกรุงเทพ', app: 'Bangkok Bank', color: '#1E3A8A', badge: 'BBL', accNo: 'xxx-x-x5916-x', accName: 'น.ส. ลักษณา มีท่อธาร', ref: '004999160440888' },
+  { id: 'ktb', name: 'ธนาคารกรุงไทย', app: 'Krungthai NEXT', color: '#00A3E0', badge: 'KTB', accNo: 'xxx-x-x5916-x', accName: 'น.ส. ลักษณา มีท่อธาร', ref: '004999160440888' },
+  { id: 'bay', name: 'ธนาคารกรุงศรีอยุธยา', app: 'KMA Krungsri', color: '#F8A800', badge: 'BAY', accNo: 'xxx-x-x5916-x', accName: 'น.ส. ลักษณา มีท่อธาร', ref: '004999160440888' },
+  { id: 'ttb', name: 'ทีเอ็มบีธนชาต', app: 'ttb touch', color: '#002D62', badge: 'ttb', accNo: 'xxx-x-x5916-x', accName: 'น.ส. ลักษณา มีท่อธาร', ref: '004999160440888' }
+];
+
+// Official Vector Brand Logos for Payments (NO CARTOON EMOJIS)
+const PAYMENT_METHODS = [
+  {
+    id: 'qr',
+    name: 'Thai QR Payment (พร้อมเพย์)',
+    desc: 'สแกน QR ผ่านทุกแอปธนาคาร ไม่มีค่าธรรมเนียม (รับเงินจากทุกธนาคาร)',
+    svg: `<svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#003B71"/><path d="M12 12h7v7h-7zM21 12h7v7h-7zM12 21h7v7h-7z" fill="#fff"/><circle cx="24.5" cy="24.5" r="3.5" fill="#00B14F"/></svg>`
+  },
+  {
+    id: 'mobile_banking',
+    name: 'ชำระผ่านแอปธนาคาร (Mobile Banking)',
+    desc: 'เลือกแอปธนาคารในไทย K PLUS, SCB, BBL, KTB, BAY, ttb',
+    svg: `<svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#0F766E"/><path d="M10 16h20M12 16v12M16 16v12M20 16v12M24 16v12M28 16v12M8 28h24M20 8l12 8H8l12-8z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+  },
+  {
+    id: 'card',
+    name: 'บัตรเครดิต / เดบิต',
+    desc: 'Visa, Mastercard, JCB (ความปลอดภัย 3D Secure)',
+    svg: `<svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#1A1F71"/><circle cx="16" cy="20" r="8" fill="#EB001B"/><circle cx="24" cy="20" r="8" fill="#F79E1B" fill-opacity="0.8"/></svg>`
+  },
+  {
+    id: 'truemoney',
+    name: 'TrueMoney Wallet',
+    desc: 'ชำระด้วยกระเป๋าเงินทรูมันนี่ สะสมคะแนนได้',
+    svg: `<svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#FF6A00"/><path d="M12 20l6-6h10l-6 6 6 6H18l-6-6z" fill="#fff"/></svg>`
+  },
+  {
+    id: 'cod',
+    name: 'เงินสดปลายทาง (Cash on Delivery)',
+    desc: 'ชำระเงินกับไรเดอร์เมื่อได้รับอาหารเรียบร้อย',
+    svg: `<svg viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="8" fill="#10B981"/><rect x="10" y="14" width="20" height="12" rx="2" stroke="#fff" stroke-width="2"/><circle cx="20" cy="20" r="3" fill="#fff"/></svg>`
+  }
+];
+
+let STATE = {
+  currentView: 'home',
+  selectedRestaurantId: 1,
+  selectedCategory: 'all',
+  searchQuery: '',
+  currentAddress: ADDRESSES[0],
+  selectedBankId: 'kbank',
+  paymentSlip: null,
+  cutlery: true,
+  appliedVoucher: null,
+  cart: [],
+  paymentMethod: 'qr',
+  activeOrder: null,
+  orderStep: 0,
+  orderTimer: null,
+  orderHistory: [],
+  reviewStars: 5,
+  reviewTags: [],
+  riderChat: [
+    { sender: 'rider', text: 'สวัสดีครับ ผมสมชาย ไรเดอร์ที่จะไปส่งอาหารให้คุณครับ', time: '10:02' }
+  ]
+};
+
+const $ = id => document.getElementById(id);
+const formatMoney = n => '฿' + Math.max(0, n).toLocaleString();
+
+function showToast(msg, icon = '✓') {
+  const slot = $('toast-slot');
+  slot.innerHTML = `<div class="toast-box"><span>${icon}</span> ${msg}</div>`;
+  setTimeout(() => { slot.innerHTML = ''; }, 2200);
+}
+
+function navigateTo(view, options = {}) {
+  Object.assign(STATE, options, { currentView: view });
+  renderApp();
+  $('main-content').scrollTop = 0;
+  playSound('click');
+}
+
+function getCartSubtotal() {
+  return STATE.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+}
+function getCartCount() {
+  return STATE.cart.reduce((sum, item) => sum + item.qty, 0);
+}
+function getDeliveryFee() {
+  if (!STATE.cart.length) return 0;
+  const rest = RESTAURANTS.find(r => r.id === STATE.cart[0].restaurantId);
+  if (!rest) return 15;
+  if (STATE.appliedVoucher && STATE.appliedVoucher.code === 'FREESHIP') return 0;
+  return rest.deliveryFee;
+}
+function getDiscountAmount() {
+  const sub = getCartSubtotal();
+  if (!STATE.appliedVoucher || !sub) return 0;
+  if (STATE.appliedVoucher.type === 'amount') return Math.min(sub, STATE.appliedVoucher.val);
+  if (STATE.appliedVoucher.type === 'percent') return Math.min(60, Math.round(sub * (STATE.appliedVoucher.val / 100)));
+  return 0;
+}
+function getGrandTotal() {
+  return Math.max(0, getCartSubtotal() + getDeliveryFee() - getDiscountAmount());
+}
+
+// 1. HOME VIEW (STORY-STYLE VISUAL CATEGORIES WITH REAL PHOTOS)
+function renderHomeView() {
+  RESTAURANTS = getLiveRestaurants();
+  const activeCatObj = CATEGORIES.find(c => c.id === STATE.selectedCategory);
+  const filtered = RESTAURANTS.filter(r => {
+    const matchCat = STATE.selectedCategory === 'all' || (activeCatObj && r.category.includes(activeCatObj.name));
+    const matchSearch = (r.name + r.category + r.menu.map(m => m.name).join(' ')).toLowerCase().includes(STATE.searchQuery.toLowerCase());
+    return matchCat && matchSearch;
+  });
+
+  return `
+    <!-- Top Bar Location & Actions -->
+    <div class="top-bar">
+      <div class="delivery-loc" onclick="openAddressModal()">
+        <small style="display: flex; align-items: center; gap: 4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00B14F" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          จัดส่งที่ (ประจวบคีรีขันธ์)
+        </small>
+        <span>${STATE.currentAddress.name} ▾</span>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" onclick="openPortalSwitcherModal()" title="สลับระบบ (ร้านค้า / แอดมิน)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+        </button>
+        <button class="icon-btn" onclick="toggleTheme()" id="theme-btn" title="สลับโหมดกลางวัน/กลางคืน">
+          ${document.documentElement.getAttribute('data-theme') === 'dark' ? 
+            `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>` : 
+            `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`}
+        </button>
+        <button class="icon-btn" onclick="toggleAudio()" id="audio-btn" title="เปิด/ปิดเสียงเอฟเฟกต์">
+          ${audioEnabled ? 
+            `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>` : 
+            `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`}
+        </button>
+        <button class="icon-btn" onclick="showToast('ไม่มีการแจ้งเตือนใหม่')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="badge-dot"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search Box -->
+    <div class="search-container">
+      <span class="search-icon-left">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input 
+        id="home-search-input" 
+        class="search-box" 
+        placeholder="ค้นหาร้านอร่อย เมนูเด็ด กะเพรา, ซูชิ, สเต็ก..." 
+        value="${STATE.searchQuery}"
+        oninput="handleSearch(this.value)"
+      >
+      ${STATE.searchQuery ? `<button class="search-clear" onclick="handleSearch('')">✕</button>` : ''}
+    </div>
+
+    <!-- Promo Carousel Banner -->
+    <div class="banner-slide">
+      <div class="banner-content">
+        <span class="banner-tag">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="#FF5A36" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          โปรโมชันพิเศษวันนี้
+        </span>
+        <h2>หิวเมื่อไหร่ รักนาพร้อมส่ง</h2>
+        <p>สั่งครั้งแรก ลดทันที 50฿ ใส่โค้ด <b>RAKNA50</b> ขั้นต่ำ 150฿</p>
+        <button class="banner-btn" onclick="applyQuickVoucher('RAKNA50')">คัดลอกโค้ด 50฿</button>
+      </div>
+      <img class="banner-decor" src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" alt="Special Dish">
+    </div>
+
+    <!-- STORY-STYLE CATEGORY BAR (REAL PHOTOS ONLY) -->
+    <div class="cat-story-bar">
+      ${CATEGORIES.map(cat => `
+        <div class="story-item ${STATE.selectedCategory === cat.id ? 'active' : ''}" onclick="selectCategory('${cat.id}')">
+          <div class="story-thumb-wrap">
+            <img class="story-img" src="${cat.img}" alt="${cat.name}" loading="lazy">
+          </div>
+          <span class="story-name">${cat.name}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Restaurant Section -->
+    <div class="section-title">
+      <h3>ร้านแนะนำยอดนิยม ${activeCatObj && activeCatObj.id !== 'all' ? `• ${activeCatObj.name}` : ''}</h3>
+      <small style="color: var(--text-mute)">พบ ${filtered.length} ร้าน</small>
+    </div>
+
+    ${filtered.map(r => `
+      <div class="rest-card" onclick="openRestaurant(${r.id})">
+        <div class="rest-banner-wrap">
+          <img class="rest-banner" src="${r.coverImg}" alt="${r.name}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'">
+          <div class="rest-promo-badge">${r.promoBadge || r.promo || 'ร้านแนะนำ'}</div>
+        </div>
+        <div class="rest-info">
+          <div class="rest-header-row">
+            <span class="rest-name">${r.name}</span>
+            <div class="rest-rating"><svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" style="vertical-align: -1px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ${r.rating}</div>
+          </div>
+          <div class="rest-meta">
+            <span style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${r.deliveryTime}</span>
+            <span style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${r.distance}</span>
+            <span style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M12 19V13l-4-4 4-2 3 3h4"/></svg> ค่าส่ง ฿${r.deliveryFee}</span>
+          </div>
+          <div class="dish-preview-row">
+            ${r.menu.slice(0, 3).map(m => `<span class="dish-chip">${m.name} (฿${m.price})</span>`).join('')}
+            ${r.menu.length > 3 ? `<span class="dish-chip" style="background:var(--primary-light); color:var(--primary); font-weight:700;">+อีก ${r.menu.length - 3} เมนู</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('')}
+
+    ${filtered.length === 0 ? `
+      <div style="text-align: center; padding: 40px 20px; color: var(--text-mute);">
+        <b>ไม่พบร้านหรือเมนูที่คุณค้นหา</b>
+        <p style="font-size: 13px; margin-top: 4px;">ลองเลือกหมวดหมู่อื่นด้านบน หรือค้นหาด้วยคำอื่น</p>
+      </div>
+    ` : ''}
+  `;
+}
+
+// 2. RESTAURANT & MENU VIEW
+function renderRestaurantView() {
+  RESTAURANTS = getLiveRestaurants();
+  const r = RESTAURANTS.find(res => res.id === STATE.selectedRestaurantId) || RESTAURANTS[0];
+
+  return `
+    <div class="menu-hero">
+      <img src="${r.coverImg}" alt="${r.name}">
+      <div class="menu-hero-overlay">
+        <div class="menu-hero-top">
+          <button class="icon-btn" onclick="navigateTo('home')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div style="display: flex; gap: 8px;">
+            <button class="icon-btn" onclick="showToast('คัดลอกลิงก์ร้านแล้ว')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="menu-hero-bottom">
+          <span style="font-size: 11px; font-weight: 700; background: var(--primary); padding: 2px 8px; border-radius: 4px; align-self: flex-start;">เปิดบริการ • ปิด 22:00 น.</span>
+          <h2 class="menu-hero-title">${r.name}</h2>
+          <div class="menu-hero-tags">
+            <span style="display:inline-flex; align-items:center; gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ${r.rating} (${r.reviewsCount || '1k+'})</span> •
+            <span style="display:inline-flex; align-items:center; gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${r.distance}</span> •
+            <span style="display:inline-flex; align-items:center; gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M12 19V13l-4-4 4-2 3 3h4"/></svg> ค่าส่ง ฿${r.deliveryFee}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Promo Alert Box -->
+    <div style="background: var(--surface); border: 1.5px dashed var(--accent); border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+      <span style="font-size: 12px; font-weight: 700; color: var(--accent);">${r.promoBadge || r.promo || 'ลด 20% สูงสุด 50฿ โค้ด RAKNA50'}</span>
+      <button onclick="applyQuickVoucher('RAKNA50')" style="background: var(--accent); color: #fff; border: none; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer;">ใช้โค้ด</button>
+    </div>
+
+    <div class="section-title">
+      <h3>เมนูแนะนำซิกเนเจอร์</h3>
+    </div>
+
+    <!-- Dishes List (Real Photos for every dish) -->
+    ${r.menu.map(dish => {
+      const inCart = STATE.cart.filter(item => item.dishId === dish.id);
+      const totalInCart = inCart.reduce((s, it) => s + it.qty, 0);
+
+      return `
+        <div class="dish-card" onclick="openDishCustomizationModal(${r.id}, ${dish.id})">
+          <div class="dish-img-wrap">
+            <img class="dish-img" src="${dish.img}" alt="${dish.name}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80'">
+          </div>
+          <div class="dish-info">
+            <div>
+              <div class="dish-title">${dish.name}</div>
+              <div class="dish-desc">${dish.desc}</div>
+            </div>
+            <div class="dish-bottom">
+              <span class="dish-price">${formatMoney(dish.price)}</span>
+              ${totalInCart > 0 ? `
+                <div class="qty-counter" onclick="event.stopPropagation()">
+                  <button class="qty-btn" onclick="quickChangeQty(${dish.id}, -1)">−</button>
+                  <span class="qty-val">${totalInCart}</span>
+                  <button class="qty-btn plus" onclick="openDishCustomizationModal(${r.id}, ${dish.id})">+</button>
+                </div>
+              ` : `
+                <button class="add-btn" onclick="event.stopPropagation(); openDishCustomizationModal(${r.id}, ${dish.id})">+</button>
+              `}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('')}
+
+    ${getCartCount() > 0 ? `
+      <div class="floating-cart-bar">
+        <button class="cart-btn-cta" onclick="navigateTo('cart')">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="cart-badge-count">${getCartCount()} ชิ้น</span>
+            <span>ดูตะกร้าสินค้า</span>
+          </div>
+          <span>${formatMoney(getCartSubtotal())} →</span>
+        </button>
+      </div>
+    ` : ''}
+  `;
+}
+
+// 3. CART VIEW
+function renderCartView() {
+  if (STATE.cart.length === 0) {
+    return `
+      <div class="top-bar">
+        <button class="icon-btn" onclick="navigateTo('home')">←</button>
+        <b>ตะกร้าอาหาร</b>
+        <div style="width: 38px;"></div>
+      </div>
+      <div style="text-align: center; padding: 70px 20px;">
+        <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 6px;">ตะกร้าของคุณยังว่างอยู่</h3>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 20px;">เลือกร้านอาหารที่ถูกใจ แล้วสั่งเมนูอร่อยได้เลย!</p>
+        <button class="banner-btn" style="background: var(--primary); color: #fff; padding: 12px 28px; font-size: 14px;" onclick="navigateTo('home')">ค้นหาร้านอาหาร</button>
+      </div>
+    `;
+  }
+
+  const rest = RESTAURANTS.find(r => r.id === STATE.cart[0].restaurantId) || RESTAURANTS[0];
+
+  return `
+    <div class="top-bar">
+      <button class="icon-btn" onclick="navigateTo('restaurant', { selectedRestaurantId: ${rest.id} })">←</button>
+      <b>ตะกร้าสินค้า (${rest.name})</b>
+      <button class="icon-btn" onclick="clearCart()" title="ล้างตะกร้า">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
+    </div>
+
+    <!-- Address Box with Prachuap Khiri Khan details -->
+    <div class="card-box address-card" onclick="openAddressModal()">
+      <div class="address-icon" style="background: var(--primary-light); color: var(--primary); display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <div class="address-details" style="flex: 1;">
+        <div style="font-size: 11px; font-weight: 700; color: var(--primary); letter-spacing: 0.3px;">จัดส่งที่ (จ.ประจวบคีรีขันธ์)</div>
+        <b style="font-size: 13.5px; color: var(--text-main); display: block; margin: 2px 0;">${STATE.currentAddress.houseNo ? STATE.currentAddress.houseNo + ' ' : ''}${STATE.currentAddress.name}</b>
+        <p style="font-size: 11px; color: var(--text-sub); margin: 0;">${STATE.currentAddress.dropOffSpot ? 'จุดส่งมอบ: ' + STATE.currentAddress.dropOffSpot : STATE.currentAddress.desc}</p>
+        ${STATE.currentAddress.note ? `<p style="font-size: 10.5px; color: var(--text-mute); margin-top: 2px;">โน้ตไรเดอร์: ${STATE.currentAddress.note}</p>` : ''}
+      </div>
+      <span style="color: var(--text-mute);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+      </span>
+    </div>
+
+    <!-- Items List -->
+    <div class="card-box">
+      <div style="font-size: 14px; font-weight: 800; margin-bottom: 12px; color: var(--text-main);">รายการอาหารที่สั่ง</div>
+      ${STATE.cart.map((item, idx) => `
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--surface-border);">
+          <img src="${item.img}" style="width: 58px; height: 58px; border-radius: 12px; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80'">
+          <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">${item.name}</div>
+            <div style="font-size: 11px; color: var(--text-sub); margin-top: 2px;">
+              ${item.note ? `โน้ต: "${item.note}"` : ''}
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+              <span style="font-weight: 800; font-size: 14px; color: var(--accent);">${formatMoney(item.price * item.qty)}</span>
+              <div class="qty-counter">
+                <button class="qty-btn" onclick="changeCartItemQty(${idx}, -1)">−</button>
+                <span class="qty-val">${item.qty}</span>
+                <button class="qty-btn plus" onclick="changeCartItemQty(${idx}, 1)">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Voucher Box -->
+    <div class="card-box">
+      <div style="font-size: 14px; font-weight: 800; color: var(--text-main);">คูปองและส่วนลด</div>
+      <div class="voucher-row">
+        <input id="voucher-code-input" class="voucher-input" placeholder="ใส่โค้ดส่วนลด เช่น RAKNA50" value="${STATE.appliedVoucher ? STATE.appliedVoucher.code : ''}">
+        <button class="voucher-btn" onclick="applyVoucherInput()">ใช้โค้ด</button>
+      </div>
+      <div class="voucher-chips">
+        <span class="v-chip" onclick="applyQuickVoucher('RAKNA50')">RAKNA50 (ลด 50฿)</span>
+        <span class="v-chip" onclick="applyQuickVoucher('FREESHIP')">FREESHIP (ส่งฟรี)</span>
+        <span class="v-chip" onclick="applyQuickVoucher('YUMMY20')">YUMMY20 (ลด 20%)</span>
+      </div>
+      ${STATE.appliedVoucher ? `
+        <div style="margin-top: 8px; font-size: 12px; color: var(--primary); font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+          <span>✓ ใช้โค้ด "${STATE.appliedVoucher.code}": ${STATE.appliedVoucher.desc}</span>
+          <button style="border: none; background: none; color: var(--danger); cursor: pointer; font-size: 11px;" onclick="removeVoucher()">ยกเลิก</button>
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- Bill Summary -->
+    <div class="card-box">
+      <div class="bill-row">
+        <span>ค่าอาหาร</span>
+        <span>${formatMoney(getCartSubtotal())}</span>
+      </div>
+      <div class="bill-row">
+        <span>ค่าจัดส่ง (อ.เมืองประจวบฯ ${rest.distance || '1.2 กม.'})</span>
+        <span>${formatMoney(getDeliveryFee())}</span>
+      </div>
+      ${STATE.appliedVoucher ? `
+        <div class="bill-row discount">
+          <span>ส่วนลด (${STATE.appliedVoucher.code})</span>
+          <span>−${formatMoney(getDiscountAmount())}</span>
+        </div>
+      ` : ''}
+      <div class="bill-row total">
+        <span>ยอดรวมทั้งหมด</span>
+        <span style="color: var(--accent); font-size: 18px;">${formatMoney(getGrandTotal())}</span>
+      </div>
+    </div>
+
+    <button class="cart-btn-cta" style="background: var(--accent-gradient);" onclick="navigateTo('payment')">
+      <span>ไปชำระเงิน</span>
+      <span>${formatMoney(getGrandTotal())} →</span>
+    </button>
+  `;
+}
+
+// 4. PAYMENT VIEW (OFFICIAL VECTOR BRAND LOGOS & THAI BANKS)
+function renderPaymentView() {
+  return `
+    <div class="top-bar">
+      <button class="icon-btn" onclick="navigateTo('cart')">←</button>
+      <b>วิธีชำระเงิน</b>
+      <div style="width: 38px;"></div>
+    </div>
+
+    ${PAYMENT_METHODS.map(pm => `
+      <div class="pay-card ${STATE.paymentMethod === pm.id ? 'selected' : ''}" onclick="selectPaymentMethod('${pm.id}')">
+        <div class="pay-logo-wrap">${pm.svg}</div>
+        <div class="pay-info">
+          <b>${pm.name}</b>
+          <small>${pm.desc}</small>
+        </div>
+        <div class="pay-check"></div>
+      </div>
+    `).join('')}
+
+    ${STATE.paymentMethod === 'qr' ? `
+      <!-- Official Thai QR Payment using user-provided PromptPay QR image -->
+      <div class="promptpay-frame" style="background: #003B71; border-radius: 20px; overflow: hidden; margin: 14px 0; box-shadow: 0 10px 30px rgba(0, 59, 113, 0.25); border: 1px solid #145388;">
+        <div style="padding: 14px 16px; background: #00284D; display: flex; align-items: center; justify-content: space-between; color: #fff;">
+          <div>
+            <div style="font-size: 14px; font-weight: 800; letter-spacing: 0.5px;">THAI QR PAYMENT</div>
+            <div style="font-size: 11px; opacity: 0.85;">PromptPay พร้อมเพย์ • รับเงินได้จากทุกธนาคาร</div>
+          </div>
+          <div style="background: #00B14F; color: #fff; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px;">K+ Verified</div>
+        </div>
+
+        <div style="background: #FFFFFF; color: #191F28; padding: 20px 16px; text-align: center;">
+          <div style="width: 220px; max-width: 100%; margin: 0 auto 12px; padding: 4px; background: #fff; border: 1.5px solid #E2E8F0; border-radius: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.06);">
+            <img src="assets/promptpay_qr.png" onerror="this.src='promptpay_qr.png'" alt="Thai QR Payment" style="width: 100%; height: auto; border-radius: 10px; display: block;">
+          </div>
+
+          <div style="font-size: 13.5px; font-weight: 800; color: #003B71; margin-bottom: 2px;">ชื่อ: น.ส. ลักษณา มีท่อธาร</div>
+          <div style="font-size: 11.5px; color: #64748B; margin-bottom: 8px;">บัญชี: xxx-x-x5916-x (KBank) • เลขอ้างอิง: 004999160440888</div>
+
+          <div style="font-size: 24px; font-weight: 900; color: #003B71; margin-bottom: 12px;">
+            ${formatMoney(getGrandTotal())}
+          </div>
+
+          <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+            <a href="assets/promptpay_qr.png" download="promptpay_qr.png" style="background: #E6F0FA; color: #003B71; text-decoration: none; font-size: 11.5px; font-weight: 700; padding: 8px 16px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              บันทึกภาพ QR Code
+            </a>
+            <button type="button" onclick="navigator.clipboard?.writeText('xxx-x-x5916-x'); showToast('คัดลอกเลขบัญชีแล้ว', '✓')" style="background: #F1F5F9; border: 1px solid #CBD5E1; color: #334155; font-size: 11.5px; font-weight: 700; padding: 8px 14px; border-radius: 9999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              คัดลอกเลขบัญชี
+            </button>
+          </div>
+
+          <!-- Slip Upload Option -->
+          <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #E2E8F0; text-align: left;">
+            <label style="font-size: 11px; font-weight: 700; color: #64748B; display: block; margin-bottom: 6px;">
+              แนบสลิปหลักฐานการโอนเงิน (ไม่บังคับ)
+            </label>
+            <input type="file" id="slip-file-input" accept="image/*" onchange="handleSlipUpload(event)" style="font-size: 11.5px; color: #475569; width: 100%;">
+            ${STATE.paymentSlip ? `<div style="margin-top: 6px; font-size: 11.5px; color: #00B14F; font-weight: 700;">✓ แนบสลิปแล้ว: ${STATE.paymentSlip}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    ` : ''}
+
+    ${STATE.paymentMethod === 'mobile_banking' ? `
+      <!-- Thai Banks Mobile Banking App Selector -->
+      <div class="card-box" style="margin-top: 12px;">
+        <div style="font-size: 13px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">
+          เลือกธนาคารในประเทศไทยที่ต้องการชำระ
+        </div>
+        <div style="font-size: 11px; color: var(--text-sub); margin-bottom: 12px;">
+          รองรับการโอนชำระเงินผ่านแอปธนาคารชั้นนำทุกแห่ง
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px;">
+          ${THAI_BANKS.map(b => `
+            <div onclick="selectBank('${b.id}')" style="padding: 10px 6px; border-radius: 12px; border: 2px solid ${STATE.selectedBankId === b.id ? b.color : 'var(--surface-border)'}; background: ${STATE.selectedBankId === b.id ? 'var(--surface-subtle)' : 'var(--surface)'}; text-align: center; cursor: pointer; transition: all 0.2s;">
+              <div style="width: 28px; height: 28px; border-radius: 8px; background: ${b.color}; color: #fff; font-size: 10px; font-weight: 900; display: grid; place-items: center; margin: 0 auto 5px; box-shadow: 0 2px 6px ${b.color}40;">
+                ${b.badge}
+              </div>
+              <div style="font-size: 11px; font-weight: 800; color: var(--text-main); line-height: 1.2;">${b.app}</div>
+              <div style="font-size: 9.5px; color: var(--text-mute); margin-top: 2px;">${b.name.replace('ธนาคาร', '')}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        ${(() => {
+          const bank = THAI_BANKS.find(b => b.id === STATE.selectedBankId) || THAI_BANKS[0];
+          return `
+            <div style="padding: 14px; border-radius: 14px; background: var(--surface-subtle); border: 1px solid var(--surface-border);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 30px; height: 30px; border-radius: 8px; background: ${bank.color}; color: #fff; font-size: 10px; font-weight: 900; display: grid; place-items: center;">${bank.badge}</div>
+                  <div>
+                    <div style="font-size: 13px; font-weight: 800; color: var(--text-main);">${bank.name} (${bank.app})</div>
+                    <div style="font-size: 11px; color: var(--text-sub);">โอนชำระตรงผ่านแอปธนาคาร</div>
+                  </div>
+                </div>
+                <span style="font-size: 11px; font-weight: 800; color: ${bank.color}; background: #fff; padding: 3px 8px; border-radius: 6px; border: 1px solid ${bank.color}30;">พร้อมโอน</span>
+              </div>
+
+              <div style="background: var(--surface); padding: 12px; border-radius: 10px; border: 1px solid var(--surface-border); margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
+                  <span style="color: var(--text-sub);">ชื่อบัญชีผู้รับ:</span>
+                  <b style="color: var(--text-main);">${bank.accName}</b>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 5px;">
+                  <span style="color: var(--text-sub);">เลขที่บัญชี:</span>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <b style="font-family: monospace; font-size: 13.5px; color: var(--primary);">${bank.accNo}</b>
+                    <button type="button" onclick="navigator.clipboard?.writeText('${bank.accNo}'); showToast('คัดลอกเลขบัญชีแล้ว', '✓')" style="border: 1px solid var(--surface-border); background: var(--surface-subtle); color: var(--text-main); border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 700; cursor: pointer;">คัดลอก</button>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                  <span style="color: var(--text-sub);">เลขอ้างอิง:</span>
+                  <span style="font-family: monospace; font-size: 11px; color: var(--text-sub);">${bank.ref}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding-top: 6px; border-top: 1px dashed var(--surface-border);">
+                  <span style="color: var(--text-sub);">ยอดเงินที่ต้องโอน:</span>
+                  <b style="font-size: 17px; color: var(--accent);">${formatMoney(getGrandTotal())}</b>
+                </div>
+              </div>
+
+              <!-- Upload Slip Section -->
+              <div style="margin-top: 10px;">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-sub); display: block; margin-bottom: 4px;">แนบสลิปหลักฐานการโอนเงิน (ไม่บังคับ)</label>
+                <input type="file" id="mb-slip-input" accept="image/*" onchange="handleSlipUpload(event)" style="font-size: 11.5px; color: var(--text-main); width: 100%;">
+                ${STATE.paymentSlip ? `<div style="margin-top: 6px; font-size: 11.5px; color: var(--primary); font-weight: 700;">✓ แนบสลิปแล้ว: ${STATE.paymentSlip}</div>` : ''}
+              </div>
+            </div>
+          `;
+        })()}
+      </div>
+    ` : ''}
+
+    <div class="card-box" style="margin-top: 10px;">
+      <div class="bill-row total" style="border: 0; margin: 0; padding: 0;">
+        <span>ยอดชำระสุทธิ</span>
+        <span style="color: var(--accent); font-size: 20px;">${formatMoney(getGrandTotal())}</span>
+      </div>
+    </div>
+
+    <button class="cart-btn-cta" style="background: var(--emerald-gradient); justify-content: center; font-size: 15px; font-weight: 800; gap: 8px;" onclick="placeOrder()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span>ยืนยันและสั่งอาหารทันที</span>
+    </button>
+  `;
+}
+
+// 5. LIVE ORDER TRACKING
+function renderTrackingView() {
+  const o = STATE.activeOrder;
+  if (!o) {
+    return `
+      <div class="top-bar">
+        <button class="icon-btn" onclick="navigateTo('home')">←</button>
+        <b>ติดตามออเดอร์</b>
+        <div style="width: 38px;"></div>
+      </div>
+      <div style="text-align: center; padding: 60px 20px;">
+        <p>ไม่มีออเดอร์ที่กำลังจัดส่งขณะนี้</p>
+        <button class="banner-btn" style="margin-top: 12px; background: var(--primary); color: #fff;" onclick="navigateTo('home')">สั่งอาหารเลย</button>
+      </div>
+    `;
+  }
+
+  const steps = [
+    { title: 'ร้านรับออเดอร์แล้ว', desc: 'ร้านค้ากำลังเตรียมวัตถุดิบและกดยืนยัน' },
+    { title: 'เชฟกำลังปรุงอาหาร', desc: 'อาหารร้อนๆ กำลังปรุงอย่างพิถีพิถัน' },
+    { title: 'ไรเดอร์กำลังมุ่งหน้าไปส่ง', desc: 'ไรเดอร์รับอาหารและกำลังเดินทางมาหาคุณ' },
+    { title: 'จัดส่งอาหารสำเร็จแล้ว', desc: 'อาหารส่งถึงที่หมายแล้ว ทานให้อร่อยนะ!' }
+  ];
+
+  let riderLeft = '18%';
+  let riderTop = '58%';
+  if (STATE.orderStep === 1) { riderLeft = '30%'; riderTop = '45%'; }
+  if (STATE.orderStep === 2) { riderLeft = '58%'; riderTop = '52%'; }
+  if (STATE.orderStep === 3) { riderLeft = '82%'; riderTop = '50%'; }
+
+  return `
+    <div class="top-bar">
+      <button class="icon-btn" onclick="navigateTo('home')">⌂</button>
+      <div style="text-align: center;">
+        <b style="font-size: 15px; color: var(--text-main);">ติดตามออเดอร์</b>
+        <div style="font-size: 11px; color: var(--text-mute);">#RN-${o.id}</div>
+      </div>
+      <div style="width: 38px;"></div>
+    </div>
+
+    <!-- Map with Real Rider Photo Marker -->
+    <div class="map-canvas-card">
+      <svg class="vector-map-bg" viewBox="0 0 400 200" preserveAspectRatio="none">
+        <rect width="400" height="200" fill="#EBF3EE"/>
+        <path d="M 0 160 Q 150 140 220 180 T 400 170 L 400 200 L 0 200 Z" fill="#CDE7F0"/>
+        <rect x="40" y="20" width="70" height="50" rx="10" fill="#D2E8D7"/>
+        <rect x="250" y="25" width="80" height="60" rx="12" fill="#D2E8D7"/>
+        <path d="M 0 85 L 400 85" stroke="#FFFFFF" stroke-width="14"/>
+        <path d="M 0 85 L 400 85" stroke="#FDE68A" stroke-width="2" stroke-dasharray="8 6"/>
+        <path d="M 120 0 L 120 200" stroke="#FFFFFF" stroke-width="12"/>
+        <path d="M 280 0 L 280 200" stroke="#FFFFFF" stroke-width="12"/>
+      </svg>
+
+      <div class="map-eta-badge">
+        <div class="eta-dot"></div>
+        <span>${STATE.orderStep === 3 ? 'ส่งถึงแล้ว' : 'ถึงในอีก ~15 นาที'}</span>
+      </div>
+
+      <!-- Real Photo Rider Marker -->
+      <div class="map-rider-marker" style="left: ${riderLeft}; top: ${riderTop};">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" style="width: 100%; height: 100%; object-fit: cover;">
+      </div>
+
+      <div class="map-dest-marker" style="display:flex; align-items:center; justify-content:center; background: #DC2626; color: #fff; width: 34px; height: 34px; border-radius: 50%; box-shadow: 0 4px 12px rgba(220,38,38,0.4); border: 2.5px solid #fff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+    </div>
+
+    <!-- Rider Profile Card -->
+    <div class="rider-card">
+      <img class="rider-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" alt="Rider">
+      <div class="rider-info">
+        <div class="rider-name">นายสมชาย ขยันส่ง</div>
+        <div class="rider-plate">1กข 4589 ประจวบฯ • ★ 4.95 (1,420 เที่ยว)</div>
+      </div>
+      <div class="rider-actions">
+        <button class="rider-btn" onclick="showToast('กำลังโทรหาไรเดอร์...')" title="โทรหาไรเดอร์">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Steps -->
+    <div class="card-box">
+      <div style="font-size: 14px; font-weight: 800; margin-bottom: 14px;">สถานะการจัดส่ง</div>
+      ${steps.map((st, idx) => `
+        <div style="display: flex; gap: 12px; margin-bottom: 12px; opacity: ${idx <= STATE.orderStep ? '1' : '0.4'};">
+          <div style="width: 24px; height: 24px; border-radius: 50%; background: ${idx <= STATE.orderStep ? 'var(--primary)' : 'var(--surface-border)'}; color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 800;">
+            ${idx <= STATE.orderStep ? '✓' : idx + 1}
+          </div>
+          <div>
+            <b style="font-size: 13px;">${st.title}</b>
+            <small style="display: block; color: var(--text-sub);">${st.desc}</small>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// 6. ORDERS HISTORY VIEW
+function renderOrdersView() {
+  if (STATE.orderHistory.length === 0 && !STATE.activeOrder) {
+    return `
+      <div class="top-bar"><b>ประวัติออเดอร์</b></div>
+      <div style="text-align: center; padding: 70px 20px;">
+        <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 6px;">ยังไม่มีประวัติการสั่งอาหาร</h3>
+        <button class="banner-btn" style="background: var(--primary); color: #fff; padding: 12px 28px; margin-top: 14px;" onclick="navigateTo('home')">สั่งอาหารทันที</button>
+      </div>
+    `;
+  }
+
+  const list = [...(STATE.activeOrder ? [STATE.activeOrder] : []), ...STATE.orderHistory];
+  return `
+    <div class="top-bar"><b>ประวัติออเดอร์ของฉัน</b></div>
+    ${list.map(order => {
+      const rest = RESTAURANTS.find(r => r.id === order.restaurantId) || RESTAURANTS[0];
+      return `
+        <div class="card-box" style="margin-bottom: 14px;">
+          <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px;">
+            <img src="${rest.coverImg}" style="width: 48px; height: 48px; border-radius: 12px; object-fit: cover;">
+            <div style="flex: 1;">
+              <b style="font-size: 14px; color: var(--text-main);">${rest.name}</b>
+              <small style="display: block; color: var(--text-sub); font-size: 11px;">#RN-${order.id} • ${order.date || 'วันนี้'}</small>
+            </div>
+            <span style="font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: var(--radius-full); background: var(--primary-light); color: var(--primary);">
+              เสร็จสมบูรณ์
+            </span>
+          </div>
+          <div style="font-size: 14px; font-weight: 800; color: var(--text-main); margin-top: 8px;">ยอดรวม: ${formatMoney(order.total)}</div>
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+// MODAL FOR CUSTOMIZATION
+function openDishCustomizationModal(restaurantId, dishId) {
+  RESTAURANTS = getLiveRestaurants();
+  const rest = RESTAURANTS.find(r => r.id === restaurantId);
+  const dish = rest.menu.find(d => d.id === dishId);
+
+  let tempState = { qty: 1, note: '' };
+
+  const renderModal = () => {
+    $('modal-container').innerHTML = `
+      <div class="modal-backdrop" onclick="closeModal(event)">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+          <div class="modal-handle"></div>
+          <div class="modal-body">
+            <div class="modal-dish-header">
+              <img class="modal-dish-img" src="${dish.img}" alt="${dish.name}">
+              <div>
+                <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main);">${dish.name}</h3>
+                <p style="font-size: 12px; color: var(--text-sub); margin-top: 2px;">${dish.desc}</p>
+                <div style="font-size: 16px; font-weight: 800; color: var(--accent); margin-top: 6px;">${formatMoney(dish.price)}</div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-title">หมายเหตุถึงร้านค้า</div>
+              <input id="modal-dish-note" class="voucher-input" style="width: 100%;" placeholder="เช่น ไม่ใส่ผักชี, เผ็ดน้อย" value="${tempState.note}" oninput="tempState.note = this.value">
+            </div>
+          </div>
+
+          <div class="option-footer">
+            <div class="qty-counter">
+              <button class="qty-btn" onclick="tempState.qty = Math.max(1, tempState.qty - 1); renderModal();">−</button>
+              <span class="qty-val">${tempState.qty}</span>
+              <button class="qty-btn plus" onclick="tempState.qty++; renderModal();">+</button>
+            </div>
+            <button class="cart-btn-cta" style="flex: 1;" onclick="confirmAddToCart()">
+              <span>ใส่ตะกร้า</span>
+              <span>${formatMoney(dish.price * tempState.qty)}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  window.confirmAddToCart = () => {
+    if (STATE.cart.length > 0 && STATE.cart[0].restaurantId !== restaurantId) {
+      if (!confirm('ในตะกร้ามีอาหารจากร้านอื่นอยู่ ต้องการล้างตะกร้าและเริ่มสั่งจากร้านนี้หรือไม่?')) return;
+      STATE.cart = [];
+    }
+
+    STATE.cart.push({
+      cartItemId: Date.now() + Math.random(),
+      restaurantId,
+      dishId,
+      name: dish.name,
+      price: dish.price,
+      qty: tempState.qty,
+      note: tempState.note,
+      img: dish.img
+    });
+
+    closeModal();
+    playSound('add');
+    showToast(`เพิ่ม "${dish.name}" ลงตะกร้าแล้ว!`);
+    renderApp();
+  };
+
+  renderModal();
+}
+
+// PORTAL SWITCHER MODAL
+function openPortalSwitcherModal() {
+  $('modal-container').innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal(event)">
+      <div class="modal-sheet" onclick="event.stopPropagation()">
+        <div class="modal-handle"></div>
+        <div class="modal-body" style="padding: 16px 22px 28px;">
+          <h3 style="font-size: 17px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">สลับระบบการทำงาน</h3>
+          <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 16px;">เลือกระบบที่คุณต้องการเปิดใช้งานหรือจัดการ</p>
+
+          <a href="merchant.html" style="text-decoration: none; display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--surface-subtle); border: 1.5px solid var(--surface-border); border-radius: var(--radius-md); margin-bottom: 10px;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: #E6F8EE; color: #00B14F; display: grid; place-items: center; flex-shrink: 0;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div style="flex: 1;">
+              <b style="font-size: 14px; color: var(--text-main); display: block;">ระบบจัดการร้านค้า (Merchant Portal)</b>
+              <small style="font-size: 11px; color: var(--text-sub);">รับออเดอร์สด, จัดการเมนู 12 ร้าน, สต๊อกสินค้า, ดูยอดขาย</small>
+            </div>
+            <span style="color: var(--primary); font-weight: 800;">→</span>
+          </a>
+
+          <a href="admin.html" style="text-decoration: none; display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--surface-subtle); border: 1.5px solid var(--surface-border); border-radius: var(--radius-md); margin-bottom: 10px;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: #EEF2FF; color: #4F46E5; display: grid; place-items: center; flex-shrink: 0;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </div>
+            <div style="flex: 1;">
+              <b style="font-size: 14px; color: var(--text-main); display: block;">ระบบบริหารจัดการส่วนกลาง (Admin Dashboard)</b>
+              <small style="font-size: 11px; color: var(--text-sub);">ภาพรวม GMV, จัดการร้านค้า 12 ร้าน, ไรเดอร์, คืนเงิน</small>
+            </div>
+            <span style="color: #4F46E5; font-weight: 800;">→</span>
+          </a>
+
+          <div style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--surface); border: 2px solid var(--primary); border-radius: var(--radius-md);">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: var(--primary); color: #fff; display: grid; place-items: center; flex-shrink: 0;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
+            <div style="flex: 1;">
+              <b style="font-size: 14px; color: var(--text-main); display: block;">แอปสั่งอาหารลูกค้า (Customer App)</b>
+              <small style="font-size: 11px; color: var(--primary); font-weight: 700;">● กำลังใช้งาน</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// --- INTERACTIVE LEAFLET DELIVERY MAP PINNING SYSTEM (PRACHUAP KHIRI KHAN) ---
+let deliveryMapInstance = null;
+let currentPinnedCoords = { lat: 11.8105, lng: 99.7965 };
+
+function setDropOffSpot(val) {
+  const input = document.getElementById('pin-dropoff-input');
+  if (input) input.value = val;
+  playSound('click');
+}
+
+function openAddressModal() {
+  const initLat = STATE.currentAddress.lat || 11.8105;
+  const initLng = STATE.currentAddress.lng || 99.7965;
+
+  $('modal-container').innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal(event)">
+      <div class="map-modal-box" onclick="event.stopPropagation()">
+        <!-- Header with title & close button -->
+        <div style="padding: 14px 18px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--surface-border);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00B14F" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <div>
+              <h3 style="font-size: 15px; font-weight: 800; color: var(--text-main); margin: 0;">ปักหมุดที่อยู่จัดส่ง (จ.ประจวบคีรีขันธ์)</h3>
+              <small style="font-size: 11px; color: var(--text-sub);">เลื่อนแผนที่เพื่อปักหมุด ระบุบ้านเลขที่และจุดวางรับอาหาร</small>
+            </div>
+          </div>
+          <button onclick="closeModal()" style="border: none; background: var(--surface-subtle); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; color: var(--text-main); font-weight: 700;">✕</button>
+        </div>
+
+        <!-- Quick Landmarks Bar in Prachuap Khiri Khan -->
+        <div class="landmarks-row">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-mute); display: flex; align-items: center; padding-left: 2px;">จุดสำคัญ:</span>
+          ${LANDMARKS.map(lm => `
+            <button class="landmark-chip" onclick="flyToLandmark(${lm.lat}, ${lm.lng}, '${lm.name}', '${lm.desc}')">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="8"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+              ${lm.name}
+            </button>
+          `).join('')}
+        </div>
+
+        <!-- Interactive Leaflet Map Viewport -->
+        <div class="map-pin-frame">
+          <div id="delivery-leaflet-map"></div>
+
+          <!-- Center Fixed Pin Marker -->
+          <div class="center-pin-marker" id="center-pin-marker">
+            <div class="pin-bubble">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="#00B14F" stroke="none"><circle cx="12" cy="12" r="10"/></svg>
+              <span id="pin-coords-text">${initLat.toFixed(4)}, ${initLng.toFixed(4)}</span>
+            </div>
+            <svg class="pin-svg-icon" width="36" height="46" viewBox="0 0 36 46" fill="none">
+              <path d="M18 0C8.05887 0 0 8.05887 0 18C0 28.5 15.5 44 17.15 45.62C17.62 46.08 18.38 46.08 18.85 45.62C20.5 44 36 28.5 36 18C36 8.05887 27.9411 0 18 0Z" fill="#00B14F"/>
+              <circle cx="18" cy="18" r="7" fill="#FFFFFF"/>
+              <circle cx="18" cy="18" r="3.5" fill="#003B71"/>
+            </svg>
+            <div class="pin-shadow"></div>
+          </div>
+
+          <!-- Floating Map Zoom & GPS Buttons -->
+          <div class="map-controls-float">
+            <button class="map-float-btn" onclick="zoomMap(1)" title="ขยายแผนที่">+</button>
+            <button class="map-float-btn" onclick="zoomMap(-1)" title="ย่อแผนที่">−</button>
+            <button class="map-float-btn" onclick="locateUserGPS()" title="ค้นหาตำแหน่ง GPS ปัจจุบัน" style="color: #00B14F;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Form Inputs & Action -->
+        <div class="address-form-box">
+          <!-- House Number / Building -->
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-sub); display: block; margin-bottom: 3px;">
+              บ้านเลขที่ / ชื่ออาคาร / หมู่บ้าน
+            </label>
+            <input id="pin-houseno-input" type="text" value="${STATE.currentAddress.houseNo || ''}" placeholder="เช่น บ้านเลขที่ 88/12 ซอยสุขจิต 3 หรือ อาคารสำนักงานเทศบาล ชั้น 2" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--surface-border); background: var(--surface-subtle); color: var(--text-main); font-size: 13px; font-weight: 600; font-family: inherit;">
+          </div>
+
+          <!-- Street / Area / Landmark -->
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-sub); display: block; margin-bottom: 3px;">
+              ถนน / ซอย / บริเวณที่ตั้ง (จ.ประจวบคีรีขันธ์)
+            </label>
+            <input id="pin-name-input" type="text" value="${STATE.currentAddress.name || ''}" placeholder="เช่น ถนนสละชีพ อ.เมืองประจวบคีรีขันธ์" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--surface-border); background: var(--surface-subtle); color: var(--text-main); font-size: 13px; font-weight: 600; font-family: inherit;">
+          </div>
+
+          <!-- Where to Deliver / Drop-off Spot -->
+          <div style="margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+              <label style="font-size: 11px; font-weight: 700; color: var(--primary); display: block;">
+                ส่งตรงไหน (จุดวางรับอาหาร / จุดส่งมอบ)
+              </label>
+              <span style="font-size: 10px; color: var(--text-mute);">เลือกหรือพิมพ์ระบุ</span>
+            </div>
+            <input id="pin-dropoff-input" type="text" value="${STATE.currentAddress.dropOffSpot || 'วางไว้ที่โต๊ะม้าหินอ่อนหน้าบ้าน / แขวนไว้ที่รั้ว'}" placeholder="เช่น วางไว้บนโต๊ะหน้าบ้าน, แขวนไว้ที่รั้ว, ฝากไว้ที่ป้อม รปภ." style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--primary); background: var(--surface-subtle); color: var(--text-main); font-size: 13px; font-weight: 600; font-family: inherit;">
+
+            <!-- Quick Choice Chips for Drop-off Spot -->
+            <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px;">
+              <button type="button" onclick="setDropOffSpot('วางไว้บนโต๊ะหน้าบ้าน')" style="font-size: 10.5px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-subtle); color: var(--text-sub); cursor: pointer;">โต๊ะหน้าบ้าน</button>
+              <button type="button" onclick="setDropOffSpot('แขวนไว้ที่รั้วหน้าบ้าน')" style="font-size: 10.5px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-subtle); color: var(--text-sub); cursor: pointer;">แขวนที่รั้ว</button>
+              <button type="button" onclick="setDropOffSpot('ฝากไว้ที่ป้อม รปภ.')" style="font-size: 10.5px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-subtle); color: var(--text-sub); cursor: pointer;">ป้อม รปภ.</button>
+              <button type="button" onclick="setDropOffSpot('ส่งมอบถึงมือผู้รับโดยตรง')" style="font-size: 10.5px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-subtle); color: var(--text-sub); cursor: pointer;">ส่งถึงมือ</button>
+              <button type="button" onclick="setDropOffSpot('จุดวางเดลิเวอรี')" style="font-size: 10.5px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--surface-border); background: var(--surface-subtle); color: var(--text-sub); cursor: pointer;">จุดเดลิเวอรี</button>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--text-sub); display: block; margin-bottom: 3px;">คำแนะนำไรเดอร์</label>
+              <input id="pin-note-input" type="text" value="${STATE.currentAddress.note || ''}" placeholder="เช่น กดกริ่งหน้าบ้าน" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--surface-border); background: var(--surface-subtle); color: var(--text-main); font-size: 12.5px; font-weight: 600; font-family: inherit;">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--text-sub); display: block; margin-bottom: 3px;">เบอร์โทรผู้รับ</label>
+              <input id="pin-phone-input" type="text" value="${STATE.currentAddress.phone || '081-987-6543'}" placeholder="08x-xxx-xxxx" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--surface-border); background: var(--surface-subtle); color: var(--text-main); font-size: 12.5px; font-weight: 600; font-family: inherit;">
+            </div>
+          </div>
+
+          <input id="pin-desc-input" type="hidden" value="${STATE.currentAddress.desc || ''}">
+
+          <button onclick="confirmPinnedAddress()" style="width: 100%; padding: 12px; background: var(--primary-gradient); color: #fff; border: none; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(0, 177, 79, 0.35);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>ยืนยันข้อมูลและพิกัดจัดส่งนี้</span>
+          </button>
+
+          <!-- Saved Addresses Quick Pick -->
+          <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--surface-border);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-mute); margin-bottom: 6px;">ที่อยู่ที่เคยบันทึกไว้ใน จ.ประจวบฯ:</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              ${ADDRESSES.map(addr => `
+                <div onclick="selectAddress('${addr.id}')" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 10px; background: ${STATE.currentAddress.id === addr.id ? 'var(--primary-light)' : 'var(--surface-subtle)'}; border: 1px solid ${STATE.currentAddress.id === addr.id ? 'var(--primary)' : 'var(--surface-border)'}; cursor: pointer;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${STATE.currentAddress.id === addr.id ? '#00B14F' : '#64748B'}" stroke-width="2">
+                      ${addr.id === 'home' ? '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' : 
+                        addr.id === 'work' ? '<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="22" x2="9" y2="18"/><line x1="15" y1="22" x2="15" y2="18"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/>' : 
+                        '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>'}
+                    </svg>
+                    <div>
+                      <div style="font-size: 12px; font-weight: 700; color: var(--text-main);">${addr.houseNo ? addr.houseNo + ' - ' : ''}${addr.name}</div>
+                      <div style="font-size: 10px; color: var(--text-sub);">${addr.dropOffSpot ? 'จุดส่ง: ' + addr.dropOffSpot : addr.desc}</div>
+                    </div>
+                  </div>
+                  ${STATE.currentAddress.id === addr.id ? '<span style="color: var(--primary); font-size: 12px; font-weight: 800;">✓</span>' : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    initDeliveryLeafletMap(initLat, initLng);
+  }, 60);
+}
+
+function initDeliveryLeafletMap(lat, lng) {
+  if (typeof L === 'undefined') {
+    console.warn('Leaflet not loaded');
+    return;
+  }
+
+  const mapEl = document.getElementById('delivery-leaflet-map');
+  if (!mapEl) return;
+
+  if (deliveryMapInstance) {
+    try {
+      deliveryMapInstance.remove();
+    } catch(e) {}
+    deliveryMapInstance = null;
+  }
+
+  currentPinnedCoords = { lat, lng };
+
+  deliveryMapInstance = L.map('delivery-leaflet-map', {
+    center: [lat, lng],
+    zoom: 16,
+    zoomControl: false
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(deliveryMapInstance);
+
+  const pinMarker = document.getElementById('center-pin-marker');
+
+  deliveryMapInstance.on('movestart', () => {
+    if (pinMarker) pinMarker.classList.add('dragging');
+  });
+
+  deliveryMapInstance.on('move', () => {
+    const center = deliveryMapInstance.getCenter();
+    currentPinnedCoords = { lat: center.lat, lng: center.lng };
+    updateAddressCoordsDisplay(center.lat, center.lng);
+  });
+
+  deliveryMapInstance.on('moveend', () => {
+    if (pinMarker) pinMarker.classList.remove('dragging');
+    const center = deliveryMapInstance.getCenter();
+    currentPinnedCoords = { lat: center.lat, lng: center.lng };
+    updateAddressCoordsDisplay(center.lat, center.lng);
+  });
+
+  setTimeout(() => {
+    if (deliveryMapInstance) {
+      deliveryMapInstance.invalidateSize();
+    }
+  }, 250);
+}
+
+function updateAddressCoordsDisplay(lat, lng) {
+  const coordEl = document.getElementById('pin-coords-text');
+  if (coordEl) coordEl.textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+}
+
+function zoomMap(delta) {
+  if (deliveryMapInstance) {
+    deliveryMapInstance.setZoom(deliveryMapInstance.getZoom() + delta);
+  }
+}
+
+function flyToLandmark(lat, lng, name, desc) {
+  if (deliveryMapInstance) {
+    deliveryMapInstance.flyTo([lat, lng], 17, { duration: 1 });
+  }
+  currentPinnedCoords = { lat, lng };
+  const nameInput = document.getElementById('pin-name-input');
+  const descInput = document.getElementById('pin-desc-input');
+  if (nameInput) nameInput.value = name;
+  if (descInput) descInput.value = desc;
+  updateAddressCoordsDisplay(lat, lng);
+  playSound('click');
+}
+
+function locateUserGPS() {
+  if (navigator.geolocation) {
+    showToast('กำลังค้นหาพิกัด GPS ประจวบคีรีขันธ์...');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        if (deliveryMapInstance) {
+          deliveryMapInstance.flyTo([latitude, longitude], 17, { duration: 1.2 });
+        }
+        currentPinnedCoords = { lat: latitude, lng: longitude };
+        updateAddressCoordsDisplay(latitude, longitude);
+        const nameInput = document.getElementById('pin-name-input');
+        const descInput = document.getElementById('pin-desc-input');
+        if (nameInput) nameInput.value = 'ตำแหน่งพิกัด GPS ปัจจุบัน (จ.ประจวบคีรีขันธ์)';
+        if (descInput) descInput.value = `ละติจูด ${latitude.toFixed(4)}, ลองจิจูด ${longitude.toFixed(4)}`;
+        showToast('ปักหมุดตำแหน่ง GPS เรียบร้อย', '✓');
+        playSound('success');
+      },
+      (err) => {
+        showToast('ไม่สามารถดึงตำแหน่ง GPS ได้ ใช้ตำแหน่งเมืองประจวบฯ แทน');
+      },
+      { timeout: 7000 }
+    );
+  } else {
+    showToast('เบราว์เซอร์ไม่รองรับ GPS');
+  }
+}
+
+function confirmPinnedAddress() {
+  const houseNoInput = document.getElementById('pin-houseno-input');
+  const nameInput = document.getElementById('pin-name-input');
+  const dropOffInput = document.getElementById('pin-dropoff-input');
+  const descInput = document.getElementById('pin-desc-input');
+  const noteInput = document.getElementById('pin-note-input');
+  const phoneInput = document.getElementById('pin-phone-input');
+
+  const houseNo = houseNoInput ? houseNoInput.value.trim() : '';
+  const addrName = (nameInput && nameInput.value.trim()) || 'ตำแหน่งที่ปักหมุด (อ.เมืองประจวบฯ)';
+  const dropOffSpot = dropOffInput ? dropOffInput.value.trim() : 'วางไว้ที่โต๊ะหน้าบ้าน';
+  const addrDesc = (descInput && descInput.value.trim()) || `พิกัด: ${currentPinnedCoords.lat.toFixed(4)}, ${currentPinnedCoords.lng.toFixed(4)}`;
+  const note = noteInput ? noteInput.value.trim() : '';
+  const phone = phoneInput ? phoneInput.value.trim() : '081-987-6543';
+
+  const fullDesc = `${houseNo ? houseNo + ', ' : ''}${addrName} (${dropOffSpot})`;
+
+  STATE.currentAddress = {
+    id: 'custom-' + Date.now(),
+    name: (houseNo ? houseNo + ' ' : '') + addrName,
+    houseNo: houseNo,
+    landmarkName: addrName,
+    dropOffSpot: dropOffSpot,
+    desc: fullDesc,
+    lat: currentPinnedCoords.lat,
+    lng: currentPinnedCoords.lng,
+    phone: phone,
+    note: note
+  };
+
+  const exists = ADDRESSES.find(a => a.name === addrName);
+  if (!exists) {
+    ADDRESSES.unshift(STATE.currentAddress);
+  } else {
+    exists.houseNo = houseNo;
+    exists.dropOffSpot = dropOffSpot;
+    exists.desc = fullDesc;
+    exists.lat = currentPinnedCoords.lat;
+    exists.lng = currentPinnedCoords.lng;
+    exists.phone = phone;
+    exists.note = note;
+  }
+
+  closeModal();
+  renderApp();
+  playSound('success');
+  showToast(`อัปเดตที่อยู่จัดส่งเรียบร้อย`, '✓');
+}
+
+function selectAddress(id) {
+  const addr = ADDRESSES.find(a => a.id === id);
+  if (!addr) return;
+  STATE.currentAddress = addr;
+  if (deliveryMapInstance && addr.lat && addr.lng) {
+    deliveryMapInstance.flyTo([addr.lat, addr.lng], 16, { duration: 0.8 });
+    currentPinnedCoords = { lat: addr.lat, lng: addr.lng };
+    const houseNoInput = document.getElementById('pin-houseno-input');
+    const nameInput = document.getElementById('pin-name-input');
+    const dropOffInput = document.getElementById('pin-dropoff-input');
+    const descInput = document.getElementById('pin-desc-input');
+    const noteInput = document.getElementById('pin-note-input');
+    const phoneInput = document.getElementById('pin-phone-input');
+    if (houseNoInput) houseNoInput.value = addr.houseNo || '';
+    if (nameInput) nameInput.value = addr.name;
+    if (dropOffInput) dropOffInput.value = addr.dropOffSpot || '';
+    if (descInput) descInput.value = addr.desc;
+    if (noteInput) noteInput.value = addr.note || '';
+    if (phoneInput) phoneInput.value = addr.phone || '';
+    updateAddressCoordsDisplay(addr.lat, addr.lng);
+  } else {
+    closeModal();
+    renderApp();
+  }
+}
+
+function closeModal(e) {
+  if (e) e.stopPropagation();
+  $('modal-container').innerHTML = '';
+  if (deliveryMapInstance) {
+    try {
+      deliveryMapInstance.remove();
+    } catch(e) {}
+    deliveryMapInstance = null;
+  }
+}
+
+// HANDLERS
+function handleSearch(val) {
+  STATE.searchQuery = val;
+  const input = $('home-search-input');
+  const selStart = input ? input.selectionStart : 0;
+  renderApp();
+  const newInput = $('home-search-input');
+  if (newInput) {
+    newInput.focus();
+    newInput.setSelectionRange(selStart, selStart);
+  }
+}
+
+function selectCategory(catId) {
+  STATE.selectedCategory = catId;
+  playSound('click');
+  renderApp();
+}
+
+function openRestaurant(id) {
+  navigateTo('restaurant', { selectedRestaurantId: id });
+}
+
+function quickChangeQty(dishId, delta) {
+  const item = STATE.cart.find(it => it.dishId === dishId);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) {
+    STATE.cart = STATE.cart.filter(it => it.cartItemId !== item.cartItemId);
+  }
+  playSound(delta > 0 ? 'add' : 'click');
+  renderApp();
+}
+
+function changeCartItemQty(index, delta) {
+  if (!STATE.cart[index]) return;
+  STATE.cart[index].qty += delta;
+  if (STATE.cart[index].qty <= 0) STATE.cart.splice(index, 1);
+  playSound('click');
+  renderApp();
+}
+
+function clearCart() {
+  if (confirm('คุณต้องการลบรายการอาหารทั้งหมดในตะกร้าใช่หรือไม่?')) {
+    STATE.cart = [];
+    renderApp();
+  }
+}
+
+function applyVoucherInput() {
+  const input = $('voucher-code-input');
+  if (!input) return;
+  applyQuickVoucher(input.value.trim().toUpperCase());
+}
+
+function applyQuickVoucher(code) {
+  if (code === 'RAKNA50') {
+    STATE.appliedVoucher = { code: 'RAKNA50', type: 'amount', val: 50, desc: 'ลดทันที 50฿' };
+    showToast('ใช้โค้ดส่วนลด 50฿ สำเร็จ!');
+  } else if (code === 'FREESHIP') {
+    STATE.appliedVoucher = { code: 'FREESHIP', type: 'amount', val: 0, desc: 'ฟรีค่าจัดส่ง' };
+    showToast('ใช้โค้ดส่งฟรีสำเร็จ!');
+  } else if (code === 'YUMMY20') {
+    STATE.appliedVoucher = { code: 'YUMMY20', type: 'percent', val: 20, desc: 'ลด 20%' };
+    showToast('ใช้โค้ดลด 20% สำเร็จ!');
+  } else {
+    showToast('ไม่พบโค้ดส่วนลดนี้', '✕');
+  }
+  renderApp();
+}
+
+function removeVoucher() {
+  STATE.appliedVoucher = null;
+  renderApp();
+}
+
+function selectPaymentMethod(id) {
+  STATE.paymentMethod = id;
+  playSound('click');
+  renderApp();
+}
+
+function selectBank(id) {
+  STATE.selectedBankId = id;
+  playSound('click');
+  renderApp();
+}
+
+function handleSlipUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (file) {
+    STATE.paymentSlip = file.name;
+    playSound('success');
+    showToast('แนบหลักฐานสลิปโอนเงินเรียบร้อย', '✓');
+    renderApp();
+  }
+}
+
+function placeOrder() {
+  if (STATE.cart.length === 0) return;
+  playSound('success');
+
+  const orderId = Math.floor(100000 + Math.random() * 900000);
+  const pm = PAYMENT_METHODS.find(p => p.id === STATE.paymentMethod);
+
+  const bankObj = THAI_BANKS.find(b => b.id === STATE.selectedBankId);
+  const payLabel = pm ? (STATE.paymentMethod === 'mobile_banking' ? `${pm.name} (${bankObj ? bankObj.app : ''})` : pm.name) : 'PromptPay';
+
+  STATE.activeOrder = {
+    id: orderId,
+    restaurantId: STATE.cart[0].restaurantId,
+    items: [...STATE.cart],
+    total: getGrandTotal(),
+    payMethod: STATE.paymentMethod,
+    payMethodName: payLabel,
+    paymentSlip: STATE.paymentSlip || null,
+    address: STATE.currentAddress,
+    date: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+  };
+
+  STATE.orderHistory.unshift(STATE.activeOrder);
+
+  // Sync to shared localStorage orders for Merchant Portal & Admin Dashboard
+  try {
+    const sharedOrders = JSON.parse(localStorage.getItem('rakna_orders') || '[]');
+    sharedOrders.unshift({
+      id: orderId,
+      restaurantId: STATE.cart[0].restaurantId,
+      customerName: `คุณลูกค้า (${STATE.currentAddress.phone || '081-987-6543'})`,
+      address: `${STATE.currentAddress.houseNo ? STATE.currentAddress.houseNo + ' ' : ''}${STATE.currentAddress.name} [จุดส่ง: ${STATE.currentAddress.dropOffSpot || 'หน้าบ้าน'}]`,
+      status: 'new',
+      time: STATE.activeOrder.date,
+      total: getGrandTotal(),
+      payMethod: payLabel,
+      paymentSlip: STATE.paymentSlip || null,
+      items: STATE.cart.map(c => ({ name: c.name, qty: c.qty, price: c.price, note: c.note || '' }))
+    });
+    localStorage.setItem('rakna_orders', JSON.stringify(sharedOrders));
+  } catch(e) {}
+
+  STATE.cart = [];
+  STATE.orderStep = 0;
+
+  clearInterval(STATE.orderTimer);
+  STATE.orderTimer = setInterval(() => {
+    if (STATE.orderStep < 3) {
+      STATE.orderStep++;
+      if (STATE.currentView === 'tracking') renderApp();
+    } else {
+      clearInterval(STATE.orderTimer);
+    }
+  }, 7000);
+
+  showToast('สั่งอาหารสำเร็จ! กำลังส่งออเดอร์ถึงร้านค้า');
+  navigateTo('tracking');
+}
+
+function renderApp() {
+  const main = $('main-content');
+  if (!main) return;
+
+  switch (STATE.currentView) {
+    case 'home': main.innerHTML = renderHomeView(); break;
+    case 'restaurant': main.innerHTML = renderRestaurantView(); break;
+    case 'cart': main.innerHTML = renderCartView(); break;
+    case 'payment': main.innerHTML = renderPaymentView(); break;
+    case 'tracking': main.innerHTML = renderTrackingView(); break;
+    case 'orders': main.innerHTML = renderOrdersView(); break;
+    default: main.innerHTML = renderHomeView();
+  }
+
+  const nav = $('bottom-nav');
+  if (nav) {
+    const isHome = STATE.currentView === 'home' || STATE.currentView === 'restaurant';
+    const isCart = STATE.currentView === 'cart' || STATE.currentView === 'payment';
+    const isTrack = STATE.currentView === 'tracking';
+    const isOrders = STATE.currentView === 'orders';
+
+    nav.innerHTML = `
+      <button class="nav-item ${isHome ? 'active' : ''}" onclick="navigateTo('home')">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>หน้าแรก</span>
+      </button>
+
+      <button class="nav-item ${isCart ? 'active' : ''}" onclick="navigateTo('cart')">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span>ตะกร้า</span>
+        ${getCartCount() > 0 ? `<span class="nav-badge">${getCartCount()}</span>` : ''}
+      </button>
+
+      <button class="nav-item ${isTrack ? 'active' : ''}" onclick="navigateTo('tracking')">
+        <svg viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        <span>ติดตาม</span>
+        ${STATE.activeOrder && STATE.orderStep < 3 ? `<span class="nav-badge" style="background: var(--primary);">!</span>` : ''}
+      </button>
+
+      <button class="nav-item ${isOrders ? 'active' : ''}" onclick="navigateTo('orders')">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>ออเดอร์</span>
+      </button>
+    `;
+  }
+}
+
+// Initial Run
+renderApp();
+
+if (window.location.hash === '#mobile_banking') {
+  STATE.cart = [{ restaurantId: 1, name: 'ข้าวกะเพราเนื้อวากิวสับไข่เป็ดกรอบ', price: 89, qty: 1 }];
+  STATE.paymentMethod = 'mobile_banking';
+  STATE.currentView = 'payment';
+  renderApp();
+} else if (window.location.hash === '#payment') {
+  STATE.cart = [{ restaurantId: 1, name: 'ข้าวกะเพราเนื้อวากิวสับไข่เป็ดกรอบ', price: 89, qty: 1 }];
+  STATE.currentView = 'payment';
+  renderApp();
+} else if (window.location.hash === '#cart') {
+  STATE.cart = [{ restaurantId: 1, name: 'ข้าวกะเพราเนื้อวากิวสับไข่เป็ดกรอบ', price: 89, qty: 1 }];
+  STATE.currentView = 'cart';
+  renderApp();
+} else if (window.location.hash.startsWith('#restaurant_')) {
+  const rId = parseInt(window.location.hash.replace('#restaurant_', ''), 10);
+  STATE.selectedRestaurantId = isNaN(rId) ? 1 : rId;
+  STATE.currentView = 'restaurant';
+  renderApp();
+} else if (window.location.hash.startsWith('#category_')) {
+  const catId = window.location.hash.replace('#category_', '');
+  STATE.selectedCategory = catId;
+  STATE.currentView = 'home';
+  renderApp();
+} else if (window.location.hash === '#map' || window.location.hash === '#address') {
+  setTimeout(() => openAddressModal(), 150);
+}
+</script>
+</body>
+</html>
